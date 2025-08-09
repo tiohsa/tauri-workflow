@@ -6,7 +6,7 @@
         Controls,
         type Edge as FlowEdge,
         type Node as FlowNode,
-        type Connection,
+        type Connection,　　　　
         Position,
     } from "@xyflow/svelte";
     import { get } from "svelte/store";

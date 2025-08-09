@@ -1,15 +1,15 @@
-<script>
+<script lang="ts">
     import { projectStore } from "$lib/presentation/stores/projectStore";
     import { TauriFsAdapter } from "$lib/infrastructure/persistence/tauriFsAdapter";
     import { scheduleBackward } from "$lib/usecases/scheduleBackward";
     import { computeCriticalChain } from "$lib/usecases/criticalChain";
     import { autoLayout } from "$lib/usecases/autoLayout";
-    import { get } from "svelte/store"; // 追加 ✅
+    import { get } from "svelte/store";
+    import type { ProjectSnapshot } from "$lib/domain/entities";
 
     const fs = new TauriFsAdapter();
 
-    // ✅ 初期値をストアから取得（無ければデフォルト形状）
-    const fallback = {
+    const fallback: ProjectSnapshot = {
         project: {
             name: "",
             dueDate: "",
@@ -22,10 +22,9 @@
         edges: [],
         groups: [],
     };
-    let snap = $state(get(projectStore) ?? fallback);
+    let snap = $state<ProjectSnapshot>(get(projectStore) ?? fallback);
 
-    // ✅ 購読してローカル state に反映
-    let unsubscribe;
+    let unsubscribe: () => void;
     $effect(() => {
         unsubscribe?.();
         unsubscribe = projectStore.subscribe((v) => (snap = v ?? fallback));
@@ -33,7 +32,7 @@
     });
 
     function runSchedule() {
-        const terminal = snap.nodes?.[0]?.id; // ✅ 安全参照
+        const terminal = snap.nodes?.[0]?.id;
         if (!terminal) return;
         const r = scheduleBackward(
             snap.nodes ?? [],
@@ -68,19 +67,19 @@
         projectStore.set(data);
     }
 
-    function setDueDate(value) {
+    function setDueDate(value: string) {
         projectStore.update((s) => ({
             ...s,
             project: { ...s.project, dueDate: value },
         }));
     }
-    function setPB(value) {
+    function setPB(value: string) {
         projectStore.update((s) => ({
             ...s,
             project: { ...s.project, projectBufferDays: Number(value) },
         }));
     }
-    function setUse50(checked) {
+    function setUse50(checked: boolean) {
         projectStore.update((s) => ({
             ...s,
             project: { ...s.project, useFiftyPctEstimate: !!checked },
@@ -89,35 +88,38 @@
 </script>
 
 <div class="flex gap-2 p-2 border-b">
-    <button on:click={runLayout}>整列</button>
-    <button on:click={runSchedule}>逆算</button>
-    <button on:click={markCC}>クリティカルチェーン</button>
-    <button on:click={onSave}>保存</button>
-    <button on:click={onLoad}>読み込み</button>
+    <button onclick={runLayout}>整列</button>
+    <button onclick={runSchedule}>逆算</button>
+    <button onclick={markCC}>クリティカルチェーン</button>
+    <button onclick={onSave}>保存</button>
+    <button onclick={onLoad}>読み込み</button>
 
     <div class="ml-auto flex items-center gap-2">
-        <label
-            >納期
-            <input type="date" value={snap?.project?.dueDate ?? ""} />
-            on:change={(e) => setDueDate(e.currentTarget.value)} />
+        <label>納期
+            <input
+                type="date"
+                value={snap?.project?.dueDate ?? ""}
+                onchange={(e: Event) =>
+                    setDueDate((e.currentTarget as HTMLInputElement).value)}
+            />
         </label>
-        <label
-            >PB
+        <label>PB
             <input
                 type="number"
                 step="0.1"
                 min="0"
                 value={snap?.project?.projectBufferDays ?? 0}
+                onchange={(e: Event) =>
+                    setPB((e.currentTarget as HTMLInputElement).value)}
             />
-            on:change={(e) => setPB(e.currentTarget.value)} />
         </label>
-        <label
-            >50%
+        <label>50%
             <input
                 type="checkbox"
                 checked={!!snap?.project?.useFiftyPctEstimate}
+                onchange={(e: Event) =>
+                    setUse50((e.currentTarget as HTMLInputElement).checked)}
             />
-            on:change={(e) => setUse50(e.currentTarget.checked)} />
         </label>
     </div>
 </div>

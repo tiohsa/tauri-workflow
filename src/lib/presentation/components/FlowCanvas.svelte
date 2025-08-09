@@ -74,6 +74,8 @@
         }));
     }
 
+    let editingNode = $state<NodeEntity | null>(null);
+
     function onNodeClick({
         node,
         event,
@@ -82,31 +84,114 @@
         event: MouseEvent | TouchEvent;
     }) {
         if (!(event instanceof MouseEvent) || event.detail !== 2) return;
-        const data = node.data as unknown as NodeEntity;
-        const name = prompt("作業名", data.name);
-        if (name === null) return;
-        const effort = Number(
-            prompt("工数(時間)", String(data.effortHours)) ?? data.effortHours,
-        );
+        editingNode = node.data as NodeEntity;
+    }
+
+    function saveNode() {
+        if (!editingNode) return;
         projectStore.update((s) => ({
             ...s,
-            nodes: s.nodes.map((n) =>
-                n.id === node.id ? { ...n, name, effortHours: effort } : n,
-            ),
+            nodes: s.nodes.map((n) => (n.id === editingNode?.id ? editingNode : n)),
         }));
+        editingNode = null;
+    }
+
+    function cancelEdit() {
+        editingNode = null;
+    }
+
+    function addNode() {
+        const id = `n${crypto.randomUUID()}`.slice(0, 8);
+        const newNode: NodeEntity = {
+            id,
+            name: "New Task",
+            effortHours: 8,
+            position: { x: 100, y: 100 },
+        };
+        projectStore.update((s) => ({ ...s, nodes: [...s.nodes, newNode] }));
     }
 </script>
 
 <div class="w-full h-full">
+    <div class="absolute top-2 left-2 z-10">
+        <button onclick={addNode}>Add Node</button>
+    </div>
+
+    {#if editingNode}
+        <div class="modal-overlay">
+            <div class="modal-content">
+                <h3>Edit Node</h3>
+                <label>
+                    Name
+                    <input type="text" bind:value={editingNode.name} />
+                </label>
+                <label>
+                    Effort (hours)
+                    <input type="number" bind:value={editingNode.effortHours} />
+                </label>
+                <div class="modal-actions">
+                    <button onclick={cancelEdit}>Cancel</button>
+                    <button onclick={saveNode}>Save</button>
+                </div>
+            </div>
+        </div>
+    {/if}
+
     <SvelteFlow
         class="w-full h-full"
         {nodes}
         {edges}
         onconnect={onConnect}
         onnodeclick={onNodeClick}
-        fitView
     >
         <Background />
         <Controls />
     </SvelteFlow>
 </div>
+
+<style>
+    .modal-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 20;
+    }
+
+    .modal-content {
+        background-color: var(--background-color, #f6f6f6);
+        color: var(--color, #0f0f0f);
+        padding: 1.5em;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-content h3 {
+        margin-top: 0;
+    }
+
+    .modal-content label {
+        display: block;
+        margin-bottom: 1em;
+    }
+
+    .modal-content input {
+        width: 100%;
+        margin-top: 0.25em;
+    }
+
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 1.5em;
+    }
+
+    .modal-actions button {
+        margin-left: 0.5em;
+    }
+</style>

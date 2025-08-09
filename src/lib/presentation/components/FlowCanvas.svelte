@@ -6,8 +6,8 @@
         Controls,
         type Edge as FlowEdge,
         type Node as FlowNode,
-        type Connection,
-        type NodeEventWithPointer
+        type Connection,　　　　
+        Position,
     } from "@xyflow/svelte";
     import { get } from "svelte/store";
     import type { ProjectSnapshot, NodeEntity, EdgeEntity } from "$lib/domain/entities";
@@ -39,8 +39,13 @@
             (n): FlowNode<Record<string, unknown>> => ({
                 id: n.id,
                 position: n.position ?? { x: 0, y: 0 },
-                data: n as unknown as Record<string, unknown>,
+                data: { ...n, label: `${n.name} (${n.effortHours}h)` } as Record<
+                    string,
+                    unknown
+                >,
                 type: "default",
+                sourcePosition: Position.Right,
+                targetPosition: Position.Left,
             }),
         ),
     );
@@ -92,8 +97,9 @@
     }
 </script>
 
-<div class="h-full">
+<div class="w-full h-full">
     <SvelteFlow
+        class="w-full h-full"
         {nodes}
         {edges}
         onconnect={onConnect}

@@ -1,9 +1,18 @@
-<script>
+<script lang="ts">
     import { projectStore } from "$lib/presentation/stores/projectStore";
-    import { SvelteFlow, Background, Controls } from "@xyflow/svelte";
+    import {
+        SvelteFlow,
+        Background,
+        Controls,
+        type Edge as FlowEdge,
+        type Node as FlowNode,
+        type Connection,
+        Position,
+    } from "@xyflow/svelte";
     import { get } from "svelte/store";
+    import type { ProjectSnapshot, NodeEntity, EdgeEntity } from "$lib/domain/entities";
 
-    const fallback = {
+    const fallback: ProjectSnapshot = {
         project: {
             name: "",
             dueDate: "",
@@ -16,34 +25,42 @@
         edges: [],
         groups: [],
     };
-    let snap = $state(get(projectStore) ?? fallback);
+    let snap = $state<ProjectSnapshot>(get(projectStore) ?? fallback);
 
-    let unsubscribe;
+    let unsubscribe: () => void;
     $effect(() => {
         unsubscribe?.();
         unsubscribe = projectStore.subscribe((v) => (snap = v ?? fallback));
         return () => unsubscribe?.();
     });
 
-    // ✅ $derived で派生値
     const nodes = $derived(
-        (snap?.nodes ?? []).map((n) => ({
-            id: n.id,
-            position: n.position ?? { x: 0, y: 0 },
-            data: n,
-            type: "default",
-        })),
+        (snap?.nodes ?? []).map(
+            (n): FlowNode<Record<string, unknown>> => ({
+                id: n.id,
+                position: n.position ?? { x: 0, y: 0 },
+                data: { ...n, label: `${n.name} (${n.effortHours}h)` } as Record<
+                    string,
+                    unknown
+                >,
+                type: "default",
+                sourcePosition: Position.Right,
+                targetPosition: Position.Left,
+            }),
+        ),
     );
 
     const edges = $derived(
-        (snap?.edges ?? []).map((e) => ({
-            id: e.id,
-            source: e.source,
-            target: e.target,
-        })),
+        (snap?.edges ?? []).map(
+            (e): FlowEdge<Record<string, unknown>> => ({
+                id: e.id,
+                source: e.source,
+                target: e.target,
+            }),
+        ),
     );
 
-    function onConnect(e) {
+    function onConnect(e: Connection) {
         projectStore.update((s) => ({
             ...s,
             edges: [
@@ -52,17 +69,24 @@
                     id: `e${crypto.randomUUID()}`.slice(0, 8),
                     source: e.source,
                     target: e.target,
-                },
+                } as EdgeEntity,
             ],
         }));
     }
 
-    function onNodeDoubleClick(_event, node) {
-        const name = prompt("作業名", node.data.name);
+    function onNodeClick({
+        node,
+        event,
+    }: {
+        node: FlowNode<Record<string, unknown>>;
+        event: MouseEvent | TouchEvent;
+    }) {
+        if (!(event instanceof MouseEvent) || event.detail !== 2) return;
+        const data = node.data as unknown as NodeEntity;
+        const name = prompt("作業名", data.name);
         if (name === null) return;
         const effort = Number(
-            prompt("工数(時間)", String(node.data.effortHours)) ??
-                node.data.effortHours,
+            prompt("工数(時間)", String(data.effortHours)) ?? data.effortHours,
         );
         projectStore.update((s) => ({
             ...s,
@@ -73,12 +97,13 @@
     }
 </script>
 
-<div class="h-full">
+<div class="w-full h-full">
     <SvelteFlow
+        class="w-full h-full"
         {nodes}
         {edges}
-        on:connect={onConnect}
-        on:nodeDoubleClick={onNodeDoubleClick}
+        onconnect={onConnect}
+        onnodeclick={onNodeClick}
         fitView
     >
         <Background />

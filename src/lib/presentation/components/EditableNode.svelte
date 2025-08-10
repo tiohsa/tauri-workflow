@@ -17,7 +17,7 @@
         selected: boolean;
     } = $props();
 
-    let editing = $state(false);
+    let editing = $state(true);
     let name = $state(data?.name ?? "");
     let hours = $state<number | string>(data?.effortHours ?? 0);
 
@@ -76,7 +76,7 @@
 </script>
 
 <div class="node" class:selected on:dblclick={startEdit}>
-    {#if editing}
+    {#if editing && !data?.isTerminal}
         <div class="editor" on:keydown={onKeyDown} on:click|stopPropagation>
             <div>
                 <input

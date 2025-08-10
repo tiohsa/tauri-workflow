@@ -2,6 +2,8 @@
     import type { NodeEntity } from "$lib/domain/entities";
     import { projectStore } from "$lib/presentation/stores/projectStore";
     import { Handle, Position } from "@xyflow/svelte";
+import { get } from "svelte/store";
+import { scheduleBackward } from "$lib/usecases/scheduleBackward";
 
     // SvelteFlow から渡される props
     let {
@@ -13,6 +15,7 @@
         data: NodeEntity & {
             isTerminal?: boolean;
             computedHours?: number;
+            terminalNodeId?: string;
         };
         selected: boolean;
     } = $props();
@@ -27,6 +30,12 @@
         name = data?.name ?? "";
         hours =
             (data?.isTerminal ? data?.computedHours : data?.effortHours) ?? 0;
+    });
+
+    $effect(() => {
+        if (editing) {
+            nameInputEl?.focus();
+        }
     });
 
     function startEdit(e: MouseEvent) {
@@ -54,6 +63,18 @@
             }));
         }
         editing = false;
+
+        // 再計算
+        const s = get(projectStore);
+        if (data.terminalNodeId) {
+            const res = scheduleBackward(
+                s.nodes,
+                s.edges,
+                s.project,
+                data.terminalNodeId,
+            );
+            projectStore.update((cur) => ({ ...cur, nodes: res.nodes }));
+        }
     }
 
     function cancel() {

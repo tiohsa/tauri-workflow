@@ -10,6 +10,14 @@
     "opener:default",
     "dialog:allow-open",
     "dialog:allow-message",
-    "dialog:default"
+    "dialog:default",
+    "fs:allow-app-write",
+    "fs:allow-app-write-recursive",
+    "fs:allow-appcache-write",
+    "fs:allow-appcache-write-recursive",
+    "fs:allow-appconfig-read-recursive",
+    "fs:allow-appconfig-write",
+    "fs:allow-appdata-read",
+    "fs:default"
   ]
 }

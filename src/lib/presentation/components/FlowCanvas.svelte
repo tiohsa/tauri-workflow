@@ -8,6 +8,7 @@
         type Node as FlowNode,
         type Connection,
         Position,
+        type NodeDragStopEvent,
     } from "@xyflow/svelte";
     import { get } from "svelte/store";
     import type {
@@ -178,13 +179,8 @@
         }));
     }
 
-    function onNodeDoubleClick({
-        node,
-    }: {
-        node: FlowNode<Record<string, unknown>>;
-        event: MouseEvent | TouchEvent;
-    }) {
-        selectedNodeId = node.id;
+    function onNodeDoubleClick({ node }: { node: FlowNode }) {
+        selectedNodeId = node?.id ?? null;
     }
 
     function deleteSelectedNode() {
@@ -221,6 +217,56 @@
         const tag = el.tagName.toLowerCase();
         return tag === "input" || tag === "textarea" || el.isContentEditable;
     }
+
+    // ノードドラッグ終了時処理
+    function onNodeDragStop(event: NodeDragStopEvent<Record<string, unknown>>) {
+        const draggedNodeId = event.targetNode.id;
+        const draggedPos = event.targetNode.position;
+        const threshold = 50; // ドロップ判定距離(px)
+
+        // Drop先候補を探索（自分以外）
+        const dropTarget = (snap.nodes ?? []).find((n) => {
+            if (n.id === draggedNodeId) return false;
+            const dx = (n.position?.x ?? 0) - draggedPos.x;
+            const dy = (n.position?.y ?? 0) - draggedPos.y;
+            return Math.hypot(dx, dy) < threshold;
+        });
+
+        if (dropTarget) {
+            const draggedNode = (snap.nodes ?? []).find(
+                (n) => n.id === draggedNodeId,
+            );
+            if (!draggedNode) return;
+
+            projectStore.update((s) => {
+                // Drop先の工数に加算
+                const updatedNodes = s.nodes.map((n) =>
+                    n.id === dropTarget.id
+                        ? {
+                              ...n,
+                              effortHours:
+                                  (Number(n.effortHours) || 0) +
+                                  (Number(draggedNode.effortHours) || 0),
+                          }
+                        : n,
+                );
+                // Drop元削除 + 関連エッジ削除
+                return {
+                    ...s,
+                    nodes: updatedNodes.filter((n) => n.id !== draggedNodeId),
+                    edges: s.edges.filter(
+                        (e) =>
+                            e.source !== draggedNodeId &&
+                            e.target !== draggedNodeId,
+                    ),
+                    groups: s.groups.map((g) => ({
+                        ...g,
+                        nodeIds: g.nodeIds.filter((id) => id !== draggedNodeId),
+                    })),
+                };
+            });
+        }
+    }
 </script>
 
 <svelte:window on:keydown={handleKeyDown} />
@@ -231,6 +277,7 @@
         {edges}
         onconnect={onConnect}
         onnodeclick={onNodeDoubleClick}
+        onnodedragstop={onNodeDragStop}
         fitView
         nodeTypes={{ editable: EditableNode }}
     >

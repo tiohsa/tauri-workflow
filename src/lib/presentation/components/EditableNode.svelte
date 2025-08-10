@@ -116,6 +116,10 @@
                 {(data?.isTerminal ? data?.computedHours : data?.effortHours) ??
                     0}h
             </div>
+            <div>
+                <input type="date" value={data.start} readonly />
+                <input type="date" value={data.end} readonly />
+            </div>
         </div>
     {/if}
 
@@ -165,5 +169,12 @@
     .sum {
         font-size: 12px;
         opacity: 0.8;
+    }
+    input[type="date"] {
+        display: flex;
+        gap: 6px;
+        border: 0px;
+        font-size: 10px;
+        font-family: inherit;
     }
 </style>

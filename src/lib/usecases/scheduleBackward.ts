@@ -26,7 +26,7 @@ export function scheduleBackward(
     const t = nodeMap.get(terminalNodeId);
     if (!t) throw new Error('terminal node not found');
     t.end = toISODate(terminalEnd);
-    t.start = toISODate(new Date(terminalEnd.getTime() - toWorkingMs(eff(t), settings)));
+    t.start = toISODate(terminalEnd);
 
     for (const id of order) {
         if (id === terminalNodeId) continue;
@@ -43,6 +43,14 @@ export function scheduleBackward(
         const start = new Date(end.getTime() - toWorkingMs(eff(node), settings));
         node.end = toISODate(end);
         node.start = toISODate(start);
+        t.start = toISODate(new Date(Math.min(
+            new Date(t.start).getTime(),
+            new Date(node.start).getTime()
+        )));
+        t.end = toISODate(new Date(Math.max(
+            new Date(t.end).getTime(),
+            new Date(node.end).getTime()
+        )));
     }
 
     return { nodes: Array.from(nodeMap.values()) };

@@ -92,6 +92,12 @@
         if (e.key === "Tab") {
             e.preventDefault();
             if (selectedNodeId) addLeftNodeOf(selectedNodeId);
+        } else if (
+            (e.key === "Delete" || e.key === "Backspace") &&
+            !isTypingTarget(e.target)
+        ) {
+            e.preventDefault();
+            deleteSelectedNode();
         }
     }
 
@@ -172,13 +178,48 @@
         }));
     }
 
-    function onNodeClick({
+    function onNodeDoubleClick({
         node,
     }: {
         node: FlowNode<Record<string, unknown>>;
         event: MouseEvent | TouchEvent;
     }) {
         selectedNodeId = node.id;
+    }
+
+    function deleteSelectedNode() {
+        if (!selectedNodeId) return;
+        const id = selectedNodeId;
+
+        projectStore.update((s) => {
+            // ノード削除
+            const nextNodes = s.nodes.filter((n) => n.id !== id);
+            // 関連エッジも削除
+            const nextEdges = s.edges.filter(
+                (e) => e.source !== id && e.target !== id,
+            );
+            // グループからも外す
+            const nextGroups = s.groups.map((g) => ({
+                ...g,
+                nodeIds: g.nodeIds.filter((nid) => nid !== id),
+            }));
+
+            return {
+                ...s,
+                nodes: nextNodes,
+                edges: nextEdges,
+                groups: nextGroups,
+            };
+        });
+
+        selectedNodeId = null;
+    }
+
+    // 入力欄での Backspace/Delete は邪魔しない
+    function isTypingTarget(el: EventTarget | null) {
+        if (!(el instanceof HTMLElement)) return false;
+        const tag = el.tagName.toLowerCase();
+        return tag === "input" || tag === "textarea" || el.isContentEditable;
     }
 </script>
 
@@ -189,7 +230,7 @@
         {nodes}
         {edges}
         onconnect={onConnect}
-        onnodeclick={onNodeClick}
+        onnodeclick={onNodeDoubleClick}
         fitView
         nodeTypes={{ editable: EditableNode }}
     >

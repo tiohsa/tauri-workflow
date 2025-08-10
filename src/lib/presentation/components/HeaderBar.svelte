@@ -95,7 +95,8 @@
     <button onclick={onLoad}>読み込み</button>
 
     <div class="ml-auto flex items-center gap-2">
-        <label>納期
+        <label
+            >納期
             <input
                 type="date"
                 value={snap?.project?.dueDate ?? ""}
@@ -103,17 +104,19 @@
                     setDueDate((e.currentTarget as HTMLInputElement).value)}
             />
         </label>
-        <label>PB
+        <label
+            >PB
             <input
                 type="number"
-                step="0.1"
+                step="1"
                 min="0"
                 value={snap?.project?.projectBufferDays ?? 0}
                 onchange={(e: Event) =>
                     setPB((e.currentTarget as HTMLInputElement).value)}
             />
         </label>
-        <label>50%
+        <label
+            >50%
             <input
                 type="checkbox"
                 checked={!!snap?.project?.useFiftyPctEstimate}

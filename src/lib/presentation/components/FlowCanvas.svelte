@@ -147,6 +147,7 @@
                     isTerminal: n.id === terminalId(),
                     computedHours:
                         n.id === terminalId() ? totalOthers : n.effortHours,
+                    terminalNodeId: terminalId(),
                 },
                 type: "editable",
                 sourcePosition: Position.Right,

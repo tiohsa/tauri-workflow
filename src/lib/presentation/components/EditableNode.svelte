@@ -8,7 +8,14 @@
         id,
         data,
         selected,
-    }: { id: string; data: NodeEntity; selected: boolean } = $props();
+    }: {
+        id: string;
+        data: NodeEntity & {
+            isTerminal?: boolean;
+            computedHours?: number;
+        };
+        selected: boolean;
+    } = $props();
 
     let editing = $state(false);
     let name = $state(data?.name ?? "");
@@ -17,9 +24,9 @@
     let nameInputEl: HTMLInputElement | null = null;
 
     $effect(() => {
-        // data 変更時にフォームへ反映
         name = data?.name ?? "";
-        hours = data?.effortHours ?? 0;
+        hours =
+            (data?.isTerminal ? data?.computedHours : data?.effortHours) ?? 0;
     });
 
     function startEdit(e: MouseEvent) {
@@ -29,20 +36,30 @@
     }
 
     function commit() {
-        const h = Number(hours);
-        if (!name || !Number.isFinite(h) || h <= 0) return; // 簡易バリデーション
-        projectStore.update((s) => ({
-            ...s,
-            nodes: s.nodes.map((n) =>
-                n.id === id ? { ...n, name, effortHours: h } : n,
-            ),
-        }));
+        if (!name) return;
+        if (data?.isTerminal) {
+            // 最終成果物は名称のみ更新（時間は自動集計）
+            projectStore.update((s) => ({
+                ...s,
+                nodes: s.nodes.map((n) => (n.id === id ? { ...n, name } : n)),
+            }));
+        } else {
+            const h = Number(hours);
+            if (!Number.isFinite(h) || h <= 0) return;
+            projectStore.update((s) => ({
+                ...s,
+                nodes: s.nodes.map((n) =>
+                    n.id === id ? { ...n, name, effortHours: h } : n,
+                ),
+            }));
+        }
         editing = false;
     }
 
     function cancel() {
         name = data?.name ?? "";
-        hours = data?.effortHours ?? 0;
+        hours =
+            (data?.isTerminal ? data?.computedHours : data?.effortHours) ?? 0;
         editing = false;
     }
 
@@ -61,37 +78,49 @@
 <div class="node" class:selected on:dblclick={startEdit}>
     {#if editing}
         <div class="editor" on:keydown={onKeyDown} on:click|stopPropagation>
-            <input
-                bind:this={nameInputEl}
-                class="in"
-                type="text"
-                placeholder="作業名"
-                bind:value={name}
-            />
-        </div>
-        <div>
-            <input
-                class="in w-20"
-                type="number"
-                min="0.1"
-                step="0.1"
-                bind:value={hours}
-            />
-            <span>h</span>
-            <button class="btn" on:click|stopPropagation={commit}>OK</button>
-            <button class="btn" on:click|stopPropagation={cancel}>Cancel</button
-            >
+            <div>
+                <input
+                    bind:this={nameInputEl}
+                    class="in"
+                    type="text"
+                    placeholder="作業名"
+                    bind:value={name}
+                />
+            </div>
+            <div>
+                {#if !data?.isTerminal}
+                    <input
+                        class="in w-20"
+                        type="number"
+                        min="0.1"
+                        step="0.1"
+                        bind:value={hours}
+                    />
+                    <span>h</span>
+                {:else}
+                    <span class="sum"
+                        >Σ {(data?.computedHours ?? 0).toFixed(1)}h</span
+                    >
+                {/if}
+                <button class="btn" on:click|stopPropagation={commit}>OK</button
+                >
+                <button class="btn" on:click|stopPropagation={cancel}
+                    >Cancel</button
+                >
+            </div>
         </div>
     {:else}
         <div class="label">
             <div class="title">{data?.name}</div>
-            <div class="meta">{data?.effortHours}h</div>
+            <div class="meta">
+                {(data?.isTerminal ? data?.computedHours : data?.effortHours) ??
+                    0}h
+            </div>
         </div>
     {/if}
 
-    <!-- 依存接続用ハンドル -->
-    <Handle type="target" {Position} position={Position.Left} />
-    <Handle type="source" {Position} position={Position.Right} />
+    <Handle type="target" position={Position.Left} />
+    <Handle type="source" position={Position.Right} />
 </div>
 
 <style>
@@ -101,7 +130,7 @@
         border: 1px solid #d1d5db;
         background: white;
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-        min-width: 160px;
+        min-width: 180px;
     }
     .node.selected {
         outline: 2px solid #4f46e5;
@@ -114,9 +143,8 @@
         opacity: 0.7;
         margin-top: 2px;
     }
-
     .editor {
-        display: flex;
+        /* display: flex; */
         align-items: left;
         gap: 6px;
     }
@@ -132,6 +160,10 @@
         background: #f9fafb;
     }
     .w-20 {
-        width: 3rem;
+        width: 2rem;
+    }
+    .sum {
+        font-size: 12px;
+        opacity: 0.8;
     }
 </style>

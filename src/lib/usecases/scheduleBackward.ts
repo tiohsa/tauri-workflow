@@ -1,6 +1,5 @@
 import type { EdgeEntity, NodeEntity, ProjectSettings } from '$lib/domain/entities';
-import { toWorkingHours, toISODate } from '$lib/shared/time';
-
+import { toWorkingMs, toISODate } from '$lib/shared/time';
 export interface ScheduleResult { nodes: NodeEntity[]; }
 
 export function scheduleBackward(
@@ -18,14 +17,16 @@ export function scheduleBackward(
         pred.set(e.target, [...(pred.get(e.target) ?? []), e.source]);
     });
 
-    const eff = (n: NodeEntity) => (settings.useFiftyPctEstimate ? n.effortHours * settings.shrinkRatio : n.effortHours);
+    const eff = (n: NodeEntity) =>
+        (settings.useFiftyPctEstimate ? n.effortHours * settings.shrinkRatio : n.effortHours);
+
     const terminalEnd = new Date(new Date(settings.dueDate).getTime() - settings.projectBufferDays * 24 * 3600 * 1000);
     const order = reverseTopological(nodes, edges);
 
     const t = nodeMap.get(terminalNodeId);
     if (!t) throw new Error('terminal node not found');
     t.end = toISODate(terminalEnd);
-    t.start = toISODate(new Date(terminalEnd.getTime() - toWorkingHours(eff(t), settings) * 3600 * 1000));
+    t.start = toISODate(new Date(terminalEnd.getTime() - toWorkingMs(eff(t), settings)));
 
     for (const id of order) {
         if (id === terminalNodeId) continue;
@@ -39,7 +40,7 @@ export function scheduleBackward(
             minStartOfSucc = !minStartOfSucc || d < minStartOfSucc ? d : minStartOfSucc;
         }
         const end = minStartOfSucc ?? terminalEnd;
-        const start = new Date(end.getTime() - toWorkingHours(eff(node), settings) * 3600 * 1000);
+        const start = new Date(end.getTime() - toWorkingMs(eff(node), settings));
         node.end = toISODate(end);
         node.start = toISODate(start);
     }

@@ -1,0 +1,27 @@
+@font-face {
+    font-family: 'Noto Sans JP';
+    src: url('/fonts/NotoSansJP-Variable.woff2') format('woff2');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Inter';
+    src: url('/fonts/Inter-Variable.woff2') format('woff2');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* 既定フォント（日本語＆記号フォールバックも含める） */
+:root {
+    --app-font: 'Inter', 'Noto Sans JP', ui-sans-serif, system-ui,
+        'Segoe UI', 'Hiragino Kaku Gothic ProN', 'Hiragino Sans',
+        'Meiryo', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', sans-serif;
+}
+
+html,
+body {
+    font-family: var(--app-font);
+}

@@ -96,7 +96,7 @@
                         step="0.1"
                         bind:value={hours}
                     />
-                    <span>h</span>
+                    <span class="unit">h</span>
                 {:else}
                     <span class="sum"
                         >Σ {(data?.computedHours ?? 0).toFixed(1)}h</span
@@ -116,12 +116,11 @@
                 {(data?.isTerminal ? data?.computedHours : data?.effortHours) ??
                     0}h
             </div>
-            <div>
-                <input type="date" value={data.start} readonly />
-                <input type="date" value={data.end} readonly />
-            </div>
+            <div></div>
         </div>
     {/if}
+    <input type="date" value={data.start} readonly />
+    <input type="date" value={data.end} readonly />
 
     <Handle type="target" position={Position.Left} />
     <Handle type="source" position={Position.Right} />
@@ -161,10 +160,15 @@
         padding: 4px 8px;
         border: 1px solid #9ca3af;
         border-radius: 6px;
+        font-size: 10px;
         background: #f9fafb;
     }
     .w-20 {
         width: 3rem;
+        font-size: 12px;
+    }
+    .unit {
+        font-size: 12px;
     }
     .sum {
         font-size: 12px;

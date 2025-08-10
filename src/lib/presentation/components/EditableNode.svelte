@@ -160,7 +160,7 @@
         background: #f9fafb;
     }
     .w-20 {
-        width: 2rem;
+        width: 3rem;
     }
     .sum {
         font-size: 12px;

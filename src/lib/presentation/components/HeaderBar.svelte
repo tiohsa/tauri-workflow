@@ -32,13 +32,25 @@
     });
 
     function runSchedule() {
-        const terminal = snap.nodes?.[0]?.id;
-        if (!terminal) return;
+        const nodes = snap.nodes ?? [];
+        const edges = snap.edges ?? [];
+        if (nodes.length === 0) {
+            return;
+        }
+
+        const sourceNodeIds = new Set(edges.map((e) => e.source));
+        const terminalNode = nodes.find((n) => !sourceNodeIds.has(n.id));
+
+        if (!terminalNode) {
+            console.warn('Cannot find terminal node. Auto schedule failed.');
+            return;
+        }
+
         const r = scheduleBackward(
-            snap.nodes ?? [],
-            snap.edges ?? [],
+            nodes,
+            edges,
             snap.project,
-            terminal,
+            terminalNode.id,
         );
         projectStore.update((s) => ({ ...s, nodes: r.nodes }));
     }

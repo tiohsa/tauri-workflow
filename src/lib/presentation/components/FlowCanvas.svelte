@@ -8,7 +8,6 @@
         type Node as FlowNode,
         type Connection,
         Position,
-        type NodeDragStopEvent,
     } from "@xyflow/svelte";
     import { get } from "svelte/store";
     import type {
@@ -219,9 +218,15 @@
     }
 
     // ノードドラッグ終了時処理
-    function onNodeDragStop(event: NodeDragStopEvent<Record<string, unknown>>) {
-        const draggedNodeId = event.targetNode.id;
-        const draggedPos = event.targetNode.position;
+    function onNodeDragStop({
+        targetNode,
+    }: {
+        targetNode: FlowNode | null;
+    }) {
+        if (!targetNode) return;
+
+        const draggedNodeId = targetNode.id;
+        const draggedPos = targetNode.position;
         const threshold = 50; // ドロップ判定距離(px)
 
         // Drop先候補を探索（自分以外）

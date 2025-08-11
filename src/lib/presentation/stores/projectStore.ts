@@ -1,5 +1,6 @@
-import { writable } from 'svelte/store';
+import { writable, get } from 'svelte/store';
 import type { ProjectSnapshot } from '$lib/domain/entities';
+import { t } from './i18n';
 
 export const projectStore = writable<ProjectSnapshot>({
     project: {
@@ -11,7 +12,12 @@ export const projectStore = writable<ProjectSnapshot>({
         hoursPerDay: 8
     },
     nodes: [
-        { id: 'n1', name: '最終成果物', effortHours: 8, position: { x: 0, y: 0 } },
+        {
+            id: 'n1',
+            name: get(t).finalProduct,
+            effortHours: 8,
+            position: { x: 0, y: 0 }
+        },
     ],
     edges: [],
     groups: []

@@ -2,8 +2,9 @@
     import type { NodeEntity } from "$lib/domain/entities";
     import { projectStore } from "$lib/presentation/stores/projectStore";
     import { Handle, Position } from "@xyflow/svelte";
-import { get } from "svelte/store";
-import { scheduleBackward } from "$lib/usecases/scheduleBackward";
+    import { get } from "svelte/store";
+    import { scheduleBackward } from "$lib/usecases/scheduleBackward";
+    import { t } from "$lib/presentation/stores/i18n";
 
     // SvelteFlow から渡される props
     let {
@@ -23,6 +24,7 @@ import { scheduleBackward } from "$lib/usecases/scheduleBackward";
     let editing = $state(true);
     let name = $state(data?.name ?? "");
     let hours = $state<number | string>(data?.effortHours ?? 0);
+    let tr = $state(get(t));
 
     let nameInputEl: HTMLInputElement | null = null;
 
@@ -36,6 +38,10 @@ import { scheduleBackward } from "$lib/usecases/scheduleBackward";
         if (editing) {
             nameInputEl?.focus();
         }
+    });
+    $effect(() => {
+        const un = t.subscribe((v) => (tr = v));
+        return () => un?.();
     });
 
     function startEdit(e: MouseEvent) {
@@ -96,15 +102,27 @@ import { scheduleBackward } from "$lib/usecases/scheduleBackward";
     }
 </script>
 
-<div class="node" class:selected on:dblclick={startEdit}>
+<div
+    class="node"
+    class:selected
+    ondblclick={startEdit}
+    role="button"
+    tabindex="0"
+>
     {#if editing && !data?.isTerminal}
-        <div class="editor" on:keydown={onKeyDown} on:click|stopPropagation>
+        <div
+            class="editor"
+            onkeydown={onKeyDown}
+            onclick={(e) => e.stopPropagation()}
+            role="group"
+            tabindex="0"
+        >
             <div>
                 <input
                     bind:this={nameInputEl}
                     class="in"
                     type="text"
-                    placeholder="作業名"
+                    placeholder={tr.taskName}
                     bind:value={name}
                 />
             </div>
@@ -123,10 +141,21 @@ import { scheduleBackward } from "$lib/usecases/scheduleBackward";
                         >Σ {(data?.computedHours ?? 0).toFixed(1)}h</span
                     >
                 {/if}
-                <button class="btn" on:click|stopPropagation={commit}>OK</button
+                <button
+                    class="btn"
+                    onclick={(e) => {
+                        e.stopPropagation();
+                        commit();
+                    }}
+                    >{tr.ok}</button
                 >
-                <button class="btn" on:click|stopPropagation={cancel}
-                    >Cancel</button
+                <button
+                    class="btn"
+                    onclick={(e) => {
+                        e.stopPropagation();
+                        cancel();
+                    }}
+                    >{tr.cancel}</button
                 >
             </div>
         </div>

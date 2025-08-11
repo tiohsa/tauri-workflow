@@ -8,7 +8,6 @@
         type Node as FlowNode,
         type Connection,
         Position,
-        type NodeDragStopEvent,
     } from "@xyflow/svelte";
     import { get } from "svelte/store";
     import type {
@@ -19,6 +18,7 @@
     import EditableNode from "./EditableNode.svelte";
     import "@xyflow/svelte/dist/style.css";
     import { autoLayout } from "$lib/usecases/autoLayout";
+    import { t, dictionary } from "$lib/presentation/stores/i18n";
 
     const fallback: ProjectSnapshot = {
         project: {
@@ -34,12 +34,17 @@
         groups: [],
     };
     let snap = $state<ProjectSnapshot>(get(projectStore) ?? fallback);
+    let tr = $state(get(t));
 
     let unsubscribe: () => void;
     $effect(() => {
         unsubscribe?.();
         unsubscribe = projectStore.subscribe((v) => (snap = v ?? fallback));
         return () => unsubscribe?.();
+    });
+    $effect(() => {
+        const un = t.subscribe((v) => (tr = v));
+        return () => un?.();
     });
 
     // 選択ノード（Tabで左に追加）
@@ -62,7 +67,7 @@
 
         const newNode: NodeEntity = {
             id: genId("n"),
-            name: "新規タスク",
+            name: tr.newTask,
             effortHours: DEFAULT_NEW_EFFORT_HOURS,
             position: { x: tx - INSERT_H_GAP, y: ty },
         };
@@ -102,13 +107,17 @@
         }
     }
 
+    const FINAL_NAMES = [
+        dictionary.ja.finalProduct,
+        dictionary.en.finalProduct,
+    ];
     const terminalId = $derived(() => {
         const all = snap?.nodes ?? [];
         if (all.length === 0) return null;
         const outSet = new Set((snap?.edges ?? []).map((e) => e.source)); // 出次数>0のノードID
         const sinks = all.filter((n) => !outSet.has(n.id)); // 出次数0=終端候補
         if (sinks.length === 1) return sinks[0].id;
-        const byName = all.find((n) => n.name === "最終成果物");
+        const byName = all.find((n) => FINAL_NAMES.includes(n.name));
         return byName?.id ?? all[0].id;
     });
 
@@ -220,7 +229,7 @@
     }
 
     // ノードドラッグ終了時処理
-    function onNodeDragStop(event: NodeDragStopEvent<Record<string, unknown>>) {
+    function onNodeDragStop(event: any) {
         const draggedNodeId = event.targetNode.id;
         const draggedPos = event.targetNode.position;
         const threshold = 50; // ドロップ判定距離(px)

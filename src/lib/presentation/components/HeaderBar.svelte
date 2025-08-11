@@ -6,6 +6,7 @@
     import { autoLayout } from "$lib/usecases/autoLayout";
     import { get } from "svelte/store";
     import type { ProjectSnapshot } from "$lib/domain/entities";
+    import { t, locale, type Locale } from "$lib/presentation/stores/i18n";
 
     const fs = new TauriFsAdapter();
 
@@ -23,12 +24,22 @@
         groups: [],
     };
     let snap = $state<ProjectSnapshot>(get(projectStore) ?? fallback);
+    let tr = $state(get(t));
+    let currentLocale = $state<Locale>(get(locale));
 
     let unsubscribe: () => void;
     $effect(() => {
         unsubscribe?.();
         unsubscribe = projectStore.subscribe((v) => (snap = v ?? fallback));
         return () => unsubscribe?.();
+    });
+    $effect(() => {
+        const un = t.subscribe((v) => (tr = v));
+        return () => un?.();
+    });
+    $effect(() => {
+        const un = locale.subscribe((v) => (currentLocale = v));
+        return () => un?.();
     });
 
     function runSchedule() {
@@ -55,7 +66,7 @@
             snap.project,
         );
         alert(
-            `Critical Chain: ${cc.path.join(" -> ")}\nTotal Hours: ${cc.totalHours.toFixed(1)}`,
+            `${tr.ccTitle}: ${cc.path.join(" -> ")}\n${tr.totalHours}: ${cc.totalHours.toFixed(1)}`,
         );
     }
 
@@ -88,15 +99,15 @@
 </script>
 
 <div class="flex gap-2 p-2 border-b">
-    <button onclick={runLayout}>整列</button>
-    <button onclick={runSchedule}>逆算</button>
-    <button onclick={markCC}>クリティカルチェーン</button>
-    <button onclick={onSave}>保存</button>
-    <button onclick={onLoad}>読み込み</button>
+    <button onclick={runLayout}>{tr.align}</button>
+    <button onclick={runSchedule}>{tr.schedule}</button>
+    <button onclick={markCC}>{tr.criticalChain}</button>
+    <button onclick={onSave}>{tr.save}</button>
+    <button onclick={onLoad}>{tr.load}</button>
 
     <div class="ml-auto flex items-center gap-2">
         <label
-            >納期
+            >{tr.dueDate}
             <input
                 type="date"
                 value={snap?.project?.dueDate ?? ""}
@@ -105,7 +116,7 @@
             />
         </label>
         <label
-            >PB
+            >{tr.projectBuffer}
             <input
                 type="number"
                 step="1"
@@ -116,7 +127,7 @@
             />
         </label>
         <label
-            >50%
+            >{tr.use50}
             <input
                 type="checkbox"
                 checked={!!snap?.project?.useFiftyPctEstimate}
@@ -124,5 +135,13 @@
                     setUse50((e.currentTarget as HTMLInputElement).checked)}
             />
         </label>
+        <select
+            bind:value={currentLocale}
+            onchange={(e) =>
+                locale.set((e.currentTarget as HTMLSelectElement).value as Locale)}
+        >
+            <option value="ja">日本語</option>
+            <option value="en">English</option>
+        </select>
     </div>
 </div>

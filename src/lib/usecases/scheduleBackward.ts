@@ -11,6 +11,7 @@ export function scheduleBackward(
     const nodeMap = new Map(nodes.map(n => [n.id, { ...n }]));
     const succ = new Map<string, string[]>();
     const pred = new Map<string, string[]>();
+    const oneDayMs = 24 * 3600 * 1000;
 
     edges.forEach(e => {
         succ.set(e.source, [...(succ.get(e.source) ?? []), e.target]);
@@ -39,7 +40,8 @@ export function scheduleBackward(
             const d = new Date(sNode.start);
             minStartOfSucc = !minStartOfSucc || d < minStartOfSucc ? d : minStartOfSucc;
         }
-        const end = minStartOfSucc ?? terminalEnd;
+        const nextStart = minStartOfSucc ?? terminalEnd;
+        const end = new Date(nextStart.getTime() - oneDayMs);
         const start = new Date(end.getTime() - toWorkingMs(eff(node), settings));
         node.end = toISODate(end);
         node.start = toISODate(start);

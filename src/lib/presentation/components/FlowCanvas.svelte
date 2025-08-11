@@ -182,12 +182,6 @@
         if (e.key === "Tab") {
             e.preventDefault();
             if (selectedNodeId) addLeftNodeOf(selectedNodeId);
-        } else if (
-            (e.key === "Delete" || e.key === "Backspace") &&
-            !isTypingTarget(e.target)
-        ) {
-            e.preventDefault();
-            deleteSelectedNode();
         }
     }
 

@@ -131,8 +131,8 @@
                     <input
                         class="in w-20"
                         type="number"
-                        min="0.1"
-                        step="0.1"
+                        min="0"
+                        step="0.5"
                         bind:value={hours}
                     />
                     <span class="unit">h</span>

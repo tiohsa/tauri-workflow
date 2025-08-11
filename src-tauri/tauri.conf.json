@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "tauri-workflow",
+  "productName": "workpath",
   "version": "0.1.0",
-  "identifier": "com.tauri-workflow.app",
+  "identifier": "com.workpath.app",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "tauri-workflow",
+        "title": "workpath",
         "maximized": true
       }
     ],

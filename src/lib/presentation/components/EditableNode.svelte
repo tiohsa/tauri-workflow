@@ -146,16 +146,14 @@
                     onclick={(e) => {
                         e.stopPropagation();
                         commit();
-                    }}
-                    >{tr.ok}</button
+                    }}>{tr.ok}</button
                 >
                 <button
                     class="btn"
                     onclick={(e) => {
                         e.stopPropagation();
                         cancel();
-                    }}
-                    >{tr.cancel}</button
+                    }}>{tr.cancel}</button
                 >
             </div>
         </div>
@@ -173,7 +171,9 @@
     <input type="date" value={data.end} readonly />
 
     <Handle type="target" position={Position.Left} />
-    <Handle type="source" position={Position.Right} />
+    {#if !data?.isTerminal}
+        <Handle type="source" position={Position.Right} />
+    {/if}
 </div>
 
 <style>

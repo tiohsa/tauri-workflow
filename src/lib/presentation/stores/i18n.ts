@@ -19,7 +19,10 @@ export const dictionary: Record<Locale, Record<string, string>> = {
     totalHours: '合計時間',
     taskName: '作業名',
     ok: 'OK',
-    cancel: 'キャンセル'
+    cancel: 'キャンセル',
+    addNode: 'ノードを追加',
+    deleteNode: 'ノードを削除',
+    deleteConnector: 'コネクタを削除'
   },
   en: {
     align: 'Align',
@@ -36,7 +39,10 @@ export const dictionary: Record<Locale, Record<string, string>> = {
     totalHours: 'Total Hours',
     taskName: 'Task name',
     ok: 'OK',
-    cancel: 'Cancel'
+    cancel: 'Cancel',
+    addNode: 'Add Node',
+    deleteNode: 'Delete Node',
+    deleteConnector: 'Delete Connector'
   }
 };
 

@@ -161,9 +161,18 @@
                 type: "editable",
                 sourcePosition: Position.Right,
                 targetPosition: Position.Left,
+                selected: n.id === selectedNodeId,
             }),
         ),
     );
+
+    function selectNode(id: string | null) {
+        selectedNodeId = id;
+    }
+
+    $effect(() => {
+        if (!selectedNodeId && snap.nodes?.length) selectNode(snap.nodes[0].id);
+    });
 
     const edges = $derived(
         (snap?.edges ?? []).map(

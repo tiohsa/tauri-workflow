@@ -29,11 +29,34 @@ export function autoLayout(nodes: NodeEntity[], edges: EdgeEntity[], hGap = 280,
     }
 
     const positioned: NodeEntity[] = [];
-    [...grouped.keys()].sort((a, b) => a - b).forEach((lvl) => {
+    const order = new Map<string, number>();
+
+    // sort each level while trying to minimise edge crossings
+    const levels = [...grouped.keys()].sort((a, b) => a - b);
+    for (const lvl of levels) {
         const list = grouped.get(lvl)!;
-        list.sort((a, b) => a.name.localeCompare(b.name));
-        list.forEach((n, i) => { positioned.push({ ...n, position: { x: -lvl * hGap, y: i * vGap } }); });
-    });
+
+        const sorted = list
+            .slice()
+            .sort((a, b) => {
+                const ba = barycenter(a.id);
+                const bb = barycenter(b.id);
+                if (ba === bb) return a.name.localeCompare(b.name);
+                return ba - bb;
+            });
+
+        sorted.forEach((n, i) => {
+            positioned.push({ ...n, position: { x: -lvl * hGap, y: i * vGap } });
+            order.set(n.id, i);
+        });
+    }
 
     return positioned;
+
+    function barycenter(id: string): number {
+        const list = succ.get(id) ?? [];
+        if (list.length === 0) return Number.POSITIVE_INFINITY;
+        const sum = list.reduce((acc, cur) => acc + (order.get(cur) ?? 0), 0);
+        return sum / list.length;
+    }
 }

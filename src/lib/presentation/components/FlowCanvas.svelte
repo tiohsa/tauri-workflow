@@ -117,12 +117,24 @@
         openContextMenu(event, "pane");
     }
 
-    function onNodeContextMenu({ event, node }: { event: MouseEvent; node: FlowNode }) {
+    function onNodeContextMenu({
+        event,
+        node,
+    }: {
+        event: MouseEvent;
+        node: FlowNode;
+    }) {
         selectedNodeId = node.id;
         openContextMenu(event, "node", node.id);
     }
 
-    function onEdgeContextMenu({ event, edge }: { event: MouseEvent; edge: FlowEdge }) {
+    function onEdgeContextMenu({
+        event,
+        edge,
+    }: {
+        event: MouseEvent;
+        edge: FlowEdge;
+    }) {
         openContextMenu(event, "edge", edge.id);
     }
 
@@ -143,7 +155,10 @@
 
     function handleAddNode() {
         if (!contextMenu) return;
-        const pos = screenToFlowPosition({ x: contextMenu.x, y: contextMenu.y });
+        const pos = screenToFlowPosition({
+            x: contextMenu.x,
+            y: contextMenu.y,
+        });
         addNodeAtPosition(pos);
         closeContextMenu();
     }
@@ -383,13 +398,15 @@
             on:click|stopPropagation
         >
             <ul>
-                {#if contextMenu.type === 'pane'}
+                {#if contextMenu.type === "pane"}
                     <li on:click={handleAddNode}>{tr.addNode}</li>
-                {:else if contextMenu.type === 'node'}
+                {:else if contextMenu.type === "node"}
                     <li on:click={handleAddNode}>{tr.addNode}</li>
                     <li on:click={handleDeleteNode}>{tr.deleteNode}</li>
-                {:else if contextMenu.type === 'edge'}
-                    <li on:click={handleDeleteEdge}>{tr.deleteConnector}</li>
+                {:else if contextMenu.type === "edge"}
+                    <li on:click={handleDeleteEdge}>
+                        {tr.deleteConnector}
+                    </li>
                 {/if}
             </ul>
         </div>

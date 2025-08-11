@@ -1,6 +1,6 @@
-# Tauri Workflow
+# WorkPath
 
-**Tauri Workflow** is a **flowchart-based workflow and project management application** built with **Tauri + SvelteKit + TypeScript**.
+**WorkPath** is a **flowchart-based workflow and project management application** built with **Tauri + SvelteKit + TypeScript**.
 
 With an intuitive node-based UI, you can visually define tasks and dependencies,
 perform **Critical Path Analysis**, and manage your projects more effectively.

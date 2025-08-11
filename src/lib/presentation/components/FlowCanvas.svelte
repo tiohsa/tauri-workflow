@@ -8,6 +8,9 @@
         type Node as FlowNode,
         type Connection,
         Position,
+        type NodeEventWithPointer,
+        type EdgeEventWithPointer,
+        type Viewport,
     } from "@xyflow/svelte";
     import { get } from "svelte/store";
     import type {
@@ -19,6 +22,7 @@
     import "@xyflow/svelte/dist/style.css";
     import { autoLayout } from "$lib/usecases/autoLayout";
     import { t, dictionary } from "$lib/presentation/stores/i18n";
+    import ContextMenu from "./ContextMenu.svelte";
 
     const fallback: ProjectSnapshot = {
         project: {
@@ -65,11 +69,15 @@
         const tx = target.position?.x ?? 0;
         const ty = target.position?.y ?? 0;
 
+        addNode({ x: tx - INSERT_H_GAP, y: ty }, target.id);
+    }
+
+    function addNode(position: { x: number; y: number }, targetId?: string) {
         const newNode: NodeEntity = {
             id: genId("n"),
             name: tr.newTask,
             effortHours: DEFAULT_NEW_EFFORT_HOURS,
-            position: { x: tx - INSERT_H_GAP, y: ty },
+            position,
         };
 
         projectStore.update((s) => {
@@ -77,11 +85,11 @@
                 ...s,
                 nodes: [...s.nodes, newNode],
             };
-            if (AUTO_CONNECT_ON_INSERT) {
+            if (targetId && AUTO_CONNECT_ON_INSERT) {
                 const newEdge: EdgeEntity = {
                     id: genId("e"),
                     source: newNode.id,
-                    target: target.id,
+                    target: targetId,
                 };
                 next.edges = [...s.edges, newEdge];
             } else {
@@ -204,8 +212,11 @@
 
     function deleteSelectedNode() {
         if (!selectedNodeId) return;
-        const id = selectedNodeId;
+        deleteNode(selectedNodeId);
+        selectedNodeId = null;
+    }
 
+    function deleteNode(id: string) {
         projectStore.update((s) => {
             // ノード削除
             const nextNodes = s.nodes.filter((n) => n.id !== id);
@@ -226,8 +237,13 @@
                 groups: nextGroups,
             };
         });
+    }
 
-        selectedNodeId = null;
+    function deleteEdge(id: string) {
+        projectStore.update((s) => ({
+            ...s,
+            edges: s.edges.filter((e) => e.id !== id),
+        }));
     }
 
     // 入力欄での Backspace/Delete は邪魔しない
@@ -288,19 +304,125 @@
     }
 </script>
 
+    let menu = $state<{
+        id: string;
+        top?: number;
+        left?: number;
+        right?: number;
+        bottom?: number;
+        actions: { label: string; onSelect: () => void }[];
+    } | null>(null);
+
+    let clientWidth: number = $state();
+    let clientHeight: number = $state();
+    let viewport: Viewport | null = $state(null);
+
+    const handlePaneContextMenu = (event: MouseEvent) => {
+        event.preventDefault();
+        const panePos = viewport
+            ? {
+                  x: (event.clientX - viewport.x) / viewport.zoom,
+                  y: (event.clientY - viewport.y) / viewport.zoom,
+              }
+            : { x: event.clientX, y: event.clientY };
+
+        menu = {
+            id: "pane",
+            top: event.clientY,
+            left: event.clientX,
+            actions: [
+                {
+                    label: tr.addNode,
+                    onSelect: () => addNode(panePos),
+                },
+            ],
+        };
+    };
+
+    const handleNodeContextMenu: NodeEventWithPointer = ({ event, node }) => {
+        event.preventDefault();
+        menu = {
+            id: node.id,
+            top: event.clientY < clientHeight - 200 ? event.clientY : undefined,
+            left: event.clientX < clientWidth - 200 ? event.clientX : undefined,
+            right:
+                event.clientX >= clientWidth - 200
+                    ? clientWidth - event.clientX
+                    : undefined,
+            bottom:
+                event.clientY >= clientHeight - 200
+                    ? clientHeight - event.clientY
+                    : undefined,
+            actions: [
+                {
+                    label: tr.deleteNode,
+                    onSelect: () => deleteNode(node.id),
+                },
+            ],
+        };
+    };
+
+    const handleEdgeContextMenu: EdgeEventWithPointer = ({ event, edge }) => {
+        event.preventDefault();
+        menu = {
+            id: edge.id,
+            top: event.clientY < clientHeight - 200 ? event.clientY : undefined,
+            left: event.clientX < clientWidth - 200 ? event.clientX : undefined,
+            right:
+                event.clientX >= clientWidth - 200
+                    ? clientWidth - event.clientX
+                    : undefined,
+            bottom:
+                event.clientY >= clientHeight - 200
+                    ? clientHeight - event.clientY
+                    : undefined,
+            actions: [
+                {
+                    label: tr.deleteConnector,
+                    onSelect: () => deleteEdge(edge.id),
+                },
+            ],
+        };
+    };
+
+    function handlePaneClick() {
+        menu = null;
+    }
+</script>
+
 <svelte:window on:keydown={handleKeyDown} />
 
-<div style:width="100vw" style:height="100vh">
+<div
+    style:width="100vw"
+    style:height="100vh"
+    bind:clientWidth
+    bind:clientHeight
+>
     <SvelteFlow
         {nodes}
         {edges}
         onconnect={onConnect}
         onnodeclick={onNodeDoubleClick}
         onnodedragstop={onNodeDragStop}
+        onnodecontextmenu={handleNodeContextMenu}
+        onedgecontextmenu={handleEdgeContextMenu}
+        onpanecontextmenu={handlePaneContextMenu}
+        onpaneclick={handlePaneClick}
+        bind:viewport
         fitView
         nodeTypes={{ editable: EditableNode }}
     >
         <Background />
         <Controls />
+        {#if menu}
+            <ContextMenu
+                onclick={handlePaneClick}
+                actions={menu.actions}
+                top={menu.top}
+                left={menu.left}
+                right={menu.right}
+                bottom={menu.bottom}
+            />
+        {/if}
     </SvelteFlow>
 </div>

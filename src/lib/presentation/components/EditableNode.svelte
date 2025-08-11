@@ -167,8 +167,11 @@
             <div></div>
         </div>
     {/if}
-    <input type="date" value={data.start} readonly />
-    <input type="date" value={data.end} readonly />
+    <div class="due-date">
+        <span class="date">{data.start}</span>-<span class="date"
+            >{data.end}</span
+        >
+    </div>
 
     <Handle type="target" position={Position.Left} />
     {#if !data?.isTerminal}
@@ -224,11 +227,15 @@
         font-size: 12px;
         opacity: 0.8;
     }
-    input[type="date"] {
+    .due-date {
         display: flex;
-        gap: 6px;
         border: 0px;
         font-size: 10px;
         font-family: inherit;
+        /* width: 60px; */
+    }
+    .date {
+        padding: 0px 2px 0px 2px;
+        font-size: 10px;
     }
 </style>

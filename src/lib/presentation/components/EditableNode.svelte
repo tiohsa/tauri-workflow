@@ -161,17 +161,17 @@
         <div class="label">
             <div class="title">{data?.name}</div>
             <div class="meta">
-                {(data?.isTerminal ? data?.computedHours : data?.effortHours) ??
-                    0}h
+                <span class="date">{data.start}</span>
+                <span class="space">
+                    {(data?.isTerminal
+                        ? data?.computedHours
+                        : data?.effortHours) ?? 0}h
+                </span>
+                <span class="date">{data.end}</span>
             </div>
             <div></div>
         </div>
     {/if}
-    <div class="due-date">
-        <span class="date">{data.start}</span>-<span class="date"
-            >{data.end}</span
-        >
-    </div>
 
     <Handle type="target" position={Position.Left} />
     {#if !data?.isTerminal}
@@ -181,7 +181,7 @@
 
 <style>
     .node {
-        padding: 8px 12px;
+        padding: 4px 8px;
         border-radius: 10px;
         border: 1px solid #d1d5db;
         background: white;
@@ -227,15 +227,12 @@
         font-size: 12px;
         opacity: 0.8;
     }
-    .due-date {
-        display: flex;
-        border: 0px;
-        font-size: 10px;
-        font-family: inherit;
-        /* width: 60px; */
-    }
     .date {
-        padding: 0px 2px 0px 2px;
-        font-size: 10px;
+        padding: 0px 15px 0px 15px;
+        font-size: 12px;
+        border-radius: 2px;
+    }
+    .space {
+        width: 60px;
     }
 </style>

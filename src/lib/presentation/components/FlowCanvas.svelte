@@ -67,6 +67,7 @@
         targetId?: string;
     } | null;
     let contextMenu = $state<ContextMenuState>(null);
+    let processing = $state(false);
 
     function runLayout() {
         const positioned = autoLayout(snap.nodes ?? [], snap.edges ?? []);
@@ -184,73 +185,82 @@
 
     async function handleDecomposeTask() {
         if (!contextMenu?.targetId) return;
-        const target = (snap.nodes ?? []).find((n) => n.id === contextMenu.targetId);
-        if (!target) return;
-        const tasks = await decomposeTaskWithAI(target.name);
-        projectStore.update((s) => {
-            const base = target.position ?? { x: 0, y: 0 };
-            const newNodes: NodeEntity[] = [];
-            const newEdges: EdgeEntity[] = [];
-            let prevId = target.id;
-            tasks
-                .slice()
-                .reverse()
-                .forEach((t, idx) => {
+        const targetId = contextMenu.targetId;
+        closeContextMenu();
+        processing = true;
+        try {
+            const target = (snap.nodes ?? []).find((n) => n.id === targetId);
+            if (!target) return;
+            const tasks = await decomposeTaskWithAI(target.name);
+            projectStore.update((s) => {
+                const base = target.position ?? { x: 0, y: 0 };
+                const newNodes: NodeEntity[] = [];
+                const newEdges: EdgeEntity[] = [];
+                let prevId = target.id;
+                tasks
+                    .slice()
+                    .reverse()
+                    .forEach((t, idx) => {
+                        const id = genId("n");
+                        newNodes.push({
+                            id,
+                            name: t.name,
+                            effortHours: t.effortHours,
+                            position: {
+                                x: base.x - INSERT_H_GAP * (idx + 1),
+                                y: base.y,
+                            },
+                        });
+                        newEdges.push({ id: genId("e"), source: id, target: prevId });
+                        prevId = id;
+                    });
+                return {
+                    ...s,
+                    nodes: [...s.nodes, ...newNodes],
+                    edges: [...s.edges, ...newEdges],
+                };
+            });
+        } finally {
+            processing = false;
+        }
+    }
+
+    async function handleGenerateFinalTask() {
+        if (!contextMenu) return;
+        const { x, y } = contextMenu;
+        closeContextMenu();
+        processing = true;
+        try {
+            const pos = screenToFlowPosition({ x, y });
+            const tasks = await generateFinalDeliverableWithAI(tr.finalProduct);
+            projectStore.update((s) => {
+                const newNodes: NodeEntity[] = [];
+                const newEdges: EdgeEntity[] = [];
+                let prev: string | null = null;
+                tasks.forEach((t, idx) => {
                     const id = genId("n");
                     newNodes.push({
                         id,
                         name: t.name,
                         effortHours: t.effortHours,
                         position: {
-                            x: base.x - INSERT_H_GAP * (idx + 1),
-                            y: base.y,
+                            x: pos.x + INSERT_H_GAP * idx,
+                            y: pos.y,
                         },
                     });
-                    newEdges.push({ id: genId("e"), source: id, target: prevId });
-                    prevId = id;
+                    if (prev)
+                        newEdges.push({ id: genId("e"), source: prev, target: id });
+                    prev = id;
                 });
-            return {
-                ...s,
-                nodes: [...s.nodes, ...newNodes],
-                edges: [...s.edges, ...newEdges],
-            };
-        });
-        closeContextMenu();
-    }
-
-    async function handleGenerateFinalTask() {
-        if (!contextMenu) return;
-        const pos = screenToFlowPosition({
-            x: contextMenu.x,
-            y: contextMenu.y,
-        });
-        const tasks = await generateFinalDeliverableWithAI(tr.finalProduct);
-        projectStore.update((s) => {
-            const newNodes: NodeEntity[] = [];
-            const newEdges: EdgeEntity[] = [];
-            let prev: string | null = null;
-            tasks.forEach((t, idx) => {
-                const id = genId("n");
-                newNodes.push({
-                    id,
-                    name: t.name,
-                    effortHours: t.effortHours,
-                    position: {
-                        x: pos.x + INSERT_H_GAP * idx,
-                        y: pos.y,
-                    },
-                });
-                if (prev)
-                    newEdges.push({ id: genId("e"), source: prev, target: id });
-                prev = id;
+                return {
+                    ...s,
+                    nodes: [...s.nodes, ...newNodes],
+                    edges: [...s.edges, ...newEdges],
+                };
             });
-            return {
-                ...s,
-                nodes: [...s.nodes, ...newNodes],
-                edges: [...s.edges, ...newEdges],
-            };
-        });
-        closeContextMenu();
+        } finally {
+            processing = false;
+        }
     }
 
     function handleKeyDown(e: KeyboardEvent) {
@@ -443,7 +453,12 @@
 
 <svelte:window on:keydown={handleKeyDown} />
 
-<div style:width="100vw" style:height="100vh" on:click={closeContextMenu}>
+<div
+    style:width="100vw"
+    style:height="100vh"
+    style:position="relative"
+    on:click={closeContextMenu}
+>
     <SvelteFlow
         {nodes}
         {edges}
@@ -484,9 +499,24 @@
             </ul>
         </div>
     {/if}
+    {#if processing}
+        <div class="processing-overlay">{tr.processing}</div>
+    {/if}
 </div>
 
 <style>
+    .processing-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.7);
+        z-index: 2000;
+    }
     .context-menu {
         position: absolute;
         z-index: 1000;

@@ -20,6 +20,10 @@
     import { autoLayout } from "$lib/usecases/autoLayout";
     import { t, dictionary } from "$lib/presentation/stores/i18n";
     import { useSvelteFlow } from "@xyflow/svelte";
+    import {
+        decomposeTaskWithAI,
+        generateFinalDeliverableWithAI,
+    } from "$lib/infrastructure/ai/taskGenerator";
 
     const fallback: ProjectSnapshot = {
         project: {
@@ -175,6 +179,77 @@
             ...s,
             edges: s.edges.filter((e) => e.id !== id),
         }));
+        closeContextMenu();
+    }
+
+    async function handleDecomposeTask() {
+        if (!contextMenu?.targetId) return;
+        const target = (snap.nodes ?? []).find((n) => n.id === contextMenu.targetId);
+        if (!target) return;
+        const tasks = await decomposeTaskWithAI(target.name);
+        projectStore.update((s) => {
+            const base = target.position ?? { x: 0, y: 0 };
+            const newNodes: NodeEntity[] = [];
+            const newEdges: EdgeEntity[] = [];
+            let prevId = target.id;
+            tasks
+                .slice()
+                .reverse()
+                .forEach((t, idx) => {
+                    const id = genId("n");
+                    newNodes.push({
+                        id,
+                        name: t.name,
+                        effortHours: t.effortHours,
+                        position: {
+                            x: base.x - INSERT_H_GAP * (idx + 1),
+                            y: base.y,
+                        },
+                    });
+                    newEdges.push({ id: genId("e"), source: id, target: prevId });
+                    prevId = id;
+                });
+            return {
+                ...s,
+                nodes: [...s.nodes, ...newNodes],
+                edges: [...s.edges, ...newEdges],
+            };
+        });
+        closeContextMenu();
+    }
+
+    async function handleGenerateFinalTask() {
+        if (!contextMenu) return;
+        const pos = screenToFlowPosition({
+            x: contextMenu.x,
+            y: contextMenu.y,
+        });
+        const tasks = await generateFinalDeliverableWithAI(tr.finalProduct);
+        projectStore.update((s) => {
+            const newNodes: NodeEntity[] = [];
+            const newEdges: EdgeEntity[] = [];
+            let prev: string | null = null;
+            tasks.forEach((t, idx) => {
+                const id = genId("n");
+                newNodes.push({
+                    id,
+                    name: t.name,
+                    effortHours: t.effortHours,
+                    position: {
+                        x: pos.x + INSERT_H_GAP * idx,
+                        y: pos.y,
+                    },
+                });
+                if (prev)
+                    newEdges.push({ id: genId("e"), source: prev, target: id });
+                prev = id;
+            });
+            return {
+                ...s,
+                nodes: [...s.nodes, ...newNodes],
+                edges: [...s.edges, ...newEdges],
+            };
+        });
         closeContextMenu();
     }
 
@@ -394,9 +469,13 @@
             <ul>
                 {#if contextMenu.type === "pane"}
                     <li on:click={handleAddNode}>{tr.addNode}</li>
+                    <li on:click={handleGenerateFinalTask}>
+                        {tr.generateFinalTask}
+                    </li>
                 {:else if contextMenu.type === "node"}
                     <li on:click={handleAddNode}>{tr.addNode}</li>
                     <li on:click={handleDeleteNode}>{tr.deleteNode}</li>
+                    <li on:click={handleDecomposeTask}>{tr.decomposeTask}</li>
                 {:else if contextMenu.type === "edge"}
                     <li on:click={handleDeleteEdge}>
                         {tr.deleteConnector}

@@ -24,7 +24,8 @@ export const dictionary: Record<Locale, Record<string, string>> = {
     deleteNode: 'ノードを削除',
     deleteConnector: 'コネクタを削除',
     decomposeTask: 'タスクを分解',
-    generateFinalTask: '最終成果物タスクを生成'
+    generateFinalTask: '最終成果物タスクを生成',
+    processing: '処理中...'
   },
   en: {
     align: 'Align',
@@ -46,7 +47,8 @@ export const dictionary: Record<Locale, Record<string, string>> = {
     deleteNode: 'Delete Node',
     deleteConnector: 'Delete Connector',
     decomposeTask: 'Decompose Task',
-    generateFinalTask: 'Generate Final Task'
+    generateFinalTask: 'Generate Final Task',
+    processing: 'Processing...'
   }
 };
 

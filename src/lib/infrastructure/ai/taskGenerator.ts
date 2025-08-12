@@ -55,7 +55,10 @@ async function callChain(
     });
 
     const chain = prompt.pipe(model).pipe(parser);
-    const result = await chain.invoke({ promptText, inputBlock });
+    const result = (await chain.invoke({
+        promptText,
+        inputBlock,
+    })) as z.infer<typeof schema>;
 
     return result.tasks.map((t: any) => ({
         id: "",

@@ -21,7 +21,7 @@
         selected: boolean;
     } = $props();
 
-    let editing = $state(true);
+    let editing = $state(false);
     let name = $state(data?.name ?? "");
     let hours = $state<number | string>(data?.effortHours ?? 0);
     let startDate = $state(data?.start ?? "");
@@ -160,17 +160,9 @@
                 />
             </div>
             <div class="dates">
-                <input
-                    class="in date-in"
-                    type="date"
-                    bind:value={startDate}
-                />
+                <input class="in date-in" type="date" bind:value={startDate} />
                 <span class="unit">→</span>
-                <input
-                    class="in date-in"
-                    type="date"
-                    bind:value={endDate}
-                />
+                <input class="in date-in" type="date" bind:value={endDate} />
             </div>
             <div>
                 {#if !data?.isTerminal}

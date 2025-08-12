@@ -54,11 +54,18 @@ async function callChain(
         partialVariables: { format: formatInstructions },
     });
 
-    const chain = prompt.pipe(model).pipe(parser);
-    const result = (await chain.invoke({
+    const formattedPrompt = await prompt.format({
         promptText,
         inputBlock,
-    })) as z.infer<typeof schema>;
+    });
+    console.log("[LLM REQUEST]", formattedPrompt);
+
+    const rawResponse = await model.invoke(formattedPrompt);
+    const responseText =
+        typeof rawResponse === "string" ? rawResponse : rawResponse.content;
+    console.log("[LLM RESPONSE]", responseText);
+
+    const result = (await parser.parse(responseText)) as z.infer<typeof schema>;
 
     return result.tasks.map((t: any) => ({
         id: "",

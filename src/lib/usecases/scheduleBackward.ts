@@ -26,33 +26,44 @@ export function scheduleBackward(
 
     const t = nodeMap.get(terminalNodeId);
     if (!t) throw new Error('terminal node not found');
-    t.end = toISODate(terminalEnd);
-    t.start = toISODate(terminalEnd);
+    if (!t.locked) {
+        t.end = toISODate(terminalEnd);
+        t.start = toISODate(terminalEnd);
+    } else {
+        t.end = t.end ?? toISODate(terminalEnd);
+        t.start = t.start ?? toISODate(terminalEnd);
+    }
 
     for (const id of order) {
         if (id === terminalNodeId) continue;
         const node = nodeMap.get(id)!;
-        const successors = succ.get(id) ?? [];
-        let minStartOfSucc: Date | undefined;
-        for (const s of successors) {
-            const sNode = nodeMap.get(s)!;
-            if (!sNode.start) continue;
-            const d = new Date(sNode.start);
-            minStartOfSucc = !minStartOfSucc || d < minStartOfSucc ? d : minStartOfSucc;
+        if (!node.locked) {
+            const successors = succ.get(id) ?? [];
+            let minStartOfSucc: Date | undefined;
+            for (const s of successors) {
+                const sNode = nodeMap.get(s)!;
+                if (!sNode.start) continue;
+                const d = new Date(sNode.start);
+                minStartOfSucc = !minStartOfSucc || d < minStartOfSucc ? d : minStartOfSucc;
+            }
+            const nextStart = minStartOfSucc ?? terminalEnd;
+            const end = new Date(nextStart.getTime() - oneDayMs);
+            const start = new Date(end.getTime() - toWorkingMs(eff(node), settings));
+            node.end = toISODate(end);
+            node.start = toISODate(start);
         }
-        const nextStart = minStartOfSucc ?? terminalEnd;
-        const end = new Date(nextStart.getTime() - oneDayMs);
-        const start = new Date(end.getTime() - toWorkingMs(eff(node), settings));
-        node.end = toISODate(end);
-        node.start = toISODate(start);
-        t.start = toISODate(new Date(Math.min(
-            new Date(t.start).getTime(),
-            new Date(node.start).getTime()
-        )));
-        t.end = toISODate(new Date(Math.max(
-            new Date(t.end).getTime(),
-            new Date(node.end).getTime()
-        )));
+        if (node.start) {
+            t.start = toISODate(new Date(Math.min(
+                new Date(t.start).getTime(),
+                new Date(node.start).getTime()
+            )));
+        }
+        if (node.end) {
+            t.end = toISODate(new Date(Math.max(
+                new Date(t.end).getTime(),
+                new Date(node.end).getTime()
+            )));
+        }
     }
 
     return { nodes: Array.from(nodeMap.values()) };

@@ -15,6 +15,7 @@ export interface NodeEntity {
     effortHours: number; // 入力は時間
     start?: string; // ISO datetime/date
     end?: string;   // ISO
+    locked?: boolean;
     groupId?: ID | null;
     position?: { x: number; y: number }; // 表示用
 }

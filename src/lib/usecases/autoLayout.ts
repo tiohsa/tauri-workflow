@@ -30,6 +30,7 @@ export function autoLayout(nodes: NodeEntity[], edges: EdgeEntity[], hGap = 280,
 
     const positioned: NodeEntity[] = [];
     const order = new Map<string, number>();
+    const placed: { x: number; y: number }[] = [];
 
     // sort each level while trying to minimise edge crossings
     const levels = [...grouped.keys()].sort((a, b) => a - b);
@@ -46,7 +47,16 @@ export function autoLayout(nodes: NodeEntity[], edges: EdgeEntity[], hGap = 280,
             });
 
         sorted.forEach((n, i) => {
-            positioned.push({ ...n, position: { x: -lvl * hGap, y: i * vGap } });
+            const x = -lvl * hGap;
+            let y = i * vGap;
+
+            // ensure nodes do not overlap by shifting down until free
+            while (placed.some(p => Math.abs(p.x - x) < hGap && Math.abs(p.y - y) < vGap)) {
+                y += vGap;
+            }
+            placed.push({ x, y });
+
+            positioned.push({ ...n, position: { x, y } });
             order.set(n.id, i);
         });
     }

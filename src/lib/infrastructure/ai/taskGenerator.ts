@@ -89,3 +89,10 @@ export async function generateFinalDeliverableWithAI(
         "記述された最終成果物に到達するためのタスクのシーケンスを作成してください。スキーマに厳密に従ったJSONのみを返してください。";
     return callChain(text, { goal });
 }
+
+// 任意のプロンプトからタスクを生成
+export async function generateTasksFromPrompt(
+    prompt: string,
+): Promise<NodeEntity[]> {
+    return callChain(prompt, {});
+}

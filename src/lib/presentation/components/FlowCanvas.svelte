@@ -453,12 +453,7 @@
 
 <svelte:window on:keydown={handleKeyDown} />
 
-<div
-    style:width="100vw"
-    style:height="100vh"
-    style:position="relative"
-    on:click={closeContextMenu}
->
+<div class="canvas-root" on:click={closeContextMenu}>
     <SvelteFlow
         {nodes}
         {edges}
@@ -505,6 +500,11 @@
 </div>
 
 <style>
+    .canvas-root {
+        width: 100%;
+        height: 100%;
+        position: relative;
+    }
     .processing-overlay {
         position: absolute;
         top: 0;

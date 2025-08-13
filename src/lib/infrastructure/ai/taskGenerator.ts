@@ -3,6 +3,7 @@ import { PromptTemplate } from "@langchain/core/prompts";
 import { StructuredOutputParser } from "@langchain/core/output_parsers";
 import { z } from "zod";
 import type { NodeEntity } from "$lib/domain/entities";
+import type { Locale } from "$lib/presentation/stores/i18n";
 
 const schema = z.object({
     tasks: z.array(
@@ -15,6 +16,27 @@ const schema = z.object({
 
 const parser = StructuredOutputParser.fromZodSchema(schema as any);
 const formatInstructions = parser.getFormatInstructions();
+
+const PROMPTS: Record<Locale, { rules: string; inputLabel: string; decompose: string; finalDeliverable: string }> = {
+    ja: {
+        rules:
+            "出力は必ず日本語で。名前などの文字列はすべて日本語で記述し、英語を混在させないこと。",
+        inputLabel: "入力:",
+        decompose:
+            "入力として goal（最終成果物の目的）と タスク（goal達成のためのタスクの一部）が与えられる。与えられたタスクは、goalに至る工程の中で特定の作業を示すものであり、そのタスクをさらに細かい作業単位に分解する。分解後のタスクは 1つにつき1つの作業内容 とし、複数の作業をまとめないこと。タスクは具体的かつ簡潔に記述し、分解したタスクだけでその元のタスクの内容が完全に実行できる状態にする。",
+        finalDeliverable:
+            "入力として与えられる goal を分析し、その最終成果物を実現するために最も適した エキスパート像（専門分野・役割） を具体的かつ明確に定義する。その定義したエキスパートとして、最終成果物に到達するためのタスクを順序立てて作成する。タスクは 1つにつき1つの作業内容 とし、複数の作業をまとめないこと。タスクは可能な限り具体的かつ簡潔に記述し、成果物までの全工程を漏れなくカバーする。",
+    },
+    en: {
+        rules:
+            "Output must be in English. Write all task names and other strings in English without mixing other languages.",
+        inputLabel: "Input:",
+        decompose:
+            "You are given a goal (the purpose of the final deliverable) and a task (one step toward that goal). Break the given task down into smaller work units. Each resulting task must describe exactly one concrete action; do not merge multiple actions into one task. Keep each task specific and concise so that executing all of them completely fulfills the original task.",
+        finalDeliverable:
+            "Analyze the provided goal and clearly define the most suitable expert persona (field/role) to accomplish it. Acting as that expert, create an ordered list of tasks required to reach the final deliverable. Each task must represent exactly one unit of work and should not combine multiple actions. Keep tasks as specific and concise as possible to cover the entire process leading to the deliverable.",
+    },
+};
 
 const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY as string | undefined;
 if (!API_KEY) {
@@ -29,29 +51,31 @@ const model = new ChatGoogleGenerativeAI({
 
 async function callChain(
     promptText: string,
-    input: Record<string, string>
+    input: Record<string, string>,
+    locale: Locale
 ): Promise<NodeEntity[]> {
     // 入力を汎用ブロック化（どのキーでも対応）
     const inputBlock = Object.entries(input)
         .map(([k, v]) => `${k}: ${v}`)
         .join("\n");
 
-    const JA_RULES =
-        "出力は必ず日本語で。名前などの文字列はすべて日本語で記述し、英語を混在させないこと。";
-
     const prompt = new PromptTemplate({
         template: [
-            JA_RULES,
+            "{rules}",
             // ユーザー意図
             "{promptText}",
             // 入力を明示
-            "入力:",
+            "{inputLabel}",
             "{inputBlock}",
             // 構造化出力の指示
             "{format}",
         ].join("\n\n"),
         inputVariables: ["promptText", "inputBlock"],
-        partialVariables: { format: formatInstructions },
+        partialVariables: {
+            format: formatInstructions,
+            rules: PROMPTS[locale].rules,
+            inputLabel: PROMPTS[locale].inputLabel,
+        },
     });
 
     const formattedPrompt = await prompt.format({
@@ -62,7 +86,9 @@ async function callChain(
 
     const rawResponse = await model.invoke(formattedPrompt);
     const responseText =
-        typeof rawResponse === "string" ? rawResponse : rawResponse.content;
+        typeof rawResponse === "string"
+            ? rawResponse
+            : ((rawResponse as any).content as string);
     console.log("[LLM RESPONSE]", responseText);
 
     const result = (await parser.parse(responseText)) as z.infer<typeof schema>;
@@ -74,26 +100,30 @@ async function callChain(
     }));
 }
 
-// タスク分解（日本語で返す）
-export async function decomposeTaskWithAI(goal: string, task: string): Promise<NodeEntity[]> {
-    const text =
-        "入力として goal（最終成果物の目的）と タスク（goal達成のためのタスクの一部）が与えられる。与えられたタスクは、goalに至る工程の中で特定の作業を示すものであり、そのタスクをさらに細かい作業単位に分解する。分解後のタスクは 1つにつき1つの作業内容 とし、複数の作業をまとめないこと。タスクは具体的かつ簡潔に記述し、分解したタスクだけでその元のタスクの内容が完全に実行できる状態にする。";
-    return callChain(text, { "goal": goal, "task": task });
+// タスク分解
+export async function decomposeTaskWithAI(
+    goal: string,
+    task: string,
+    locale: Locale
+): Promise<NodeEntity[]> {
+    const text = PROMPTS[locale].decompose;
+    return callChain(text, { goal, task }, locale);
 }
 
-
-// 最終成果物へ至るシーケンス生成（日本語で返す）
+// 最終成果物へ至るシーケンス生成
 export async function generateFinalDeliverableWithAI(
-    goal: string
+    goal: string,
+    locale: Locale
 ): Promise<NodeEntity[]> {
-    const text =
-        "入力として与えられる goal を分析し、その最終成果物を実現するために最も適した エキスパート像（専門分野・役割） を具体的かつ明確に定義する。その定義したエキスパートとして、最終成果物に到達するためのタスクを順序立てて作成する。タスクは 1つにつき1つの作業内容 とし、複数の作業をまとめないこと。タスクは可能な限り具体的かつ簡潔に記述し、成果物までの全工程を漏れなくカバーする。";
-    return callChain(text, { goal });
+    const text = PROMPTS[locale].finalDeliverable;
+    return callChain(text, { goal }, locale);
 }
 
 // 任意のプロンプトからタスクを生成
 export async function generateTasksFromPrompt(
     prompt: string,
+    locale: Locale
 ): Promise<NodeEntity[]> {
-    return callChain(prompt, {});
+    return callChain(prompt, {}, locale);
 }
+

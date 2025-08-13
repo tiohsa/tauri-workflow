@@ -1,7 +1,7 @@
 <script lang="ts">
     import { generateTasksFromPrompt } from "$lib/infrastructure/ai/taskGenerator";
     import { projectStore } from "$lib/presentation/stores/projectStore";
-    import { t } from "$lib/presentation/stores/i18n";
+    import { t, locale, type Locale } from "$lib/presentation/stores/i18n";
     import { get } from "svelte/store";
     import type { NodeEntity, EdgeEntity } from "$lib/domain/entities";
 
@@ -12,9 +12,14 @@
     let lastTasks = $state<NodeEntity[] | null>(null);
     let loading = $state(false);
     let tr = $state(get(t));
+    let currentLocale = $state<Locale>(get(locale));
 
     $effect(() => {
         const un = t.subscribe((v) => (tr = v));
+        return () => un?.();
+    });
+    $effect(() => {
+        const un = locale.subscribe((v) => (currentLocale = v));
         return () => un?.();
     });
 
@@ -24,7 +29,7 @@
         prompt = "";
         loading = true;
         try {
-            lastTasks = await generateTasksFromPrompt(lastPrompt);
+            lastTasks = await generateTasksFromPrompt(lastPrompt, currentLocale);
         } finally {
             loading = false;
         }
@@ -34,7 +39,7 @@
         if (!lastPrompt || loading) return;
         loading = true;
         try {
-            lastTasks = await generateTasksFromPrompt(lastPrompt);
+            lastTasks = await generateTasksFromPrompt(lastPrompt, currentLocale);
         } finally {
             loading = false;
         }

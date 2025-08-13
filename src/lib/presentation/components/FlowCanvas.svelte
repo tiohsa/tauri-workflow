@@ -564,7 +564,7 @@
 <style>
     .canvas-root {
         width: 100%;
-        height: 100%;
+        height: 90%;
         position: relative;
     }
     .processing-overlay {

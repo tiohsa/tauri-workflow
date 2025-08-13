@@ -112,7 +112,7 @@
         border-left: 1px solid #ccc;
         display: flex;
         flex-direction: column;
-        height: 100%;
+        height: 90vh;
     }
     .messages {
         flex: 1;

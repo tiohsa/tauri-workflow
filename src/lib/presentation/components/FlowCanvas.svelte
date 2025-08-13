@@ -18,7 +18,7 @@
     import EditableNode from "./EditableNode.svelte";
     import "@xyflow/svelte/dist/style.css";
     import { autoLayout } from "$lib/usecases/autoLayout";
-    import { t, dictionary } from "$lib/presentation/stores/i18n";
+    import { t, dictionary, locale, type Locale } from "$lib/presentation/stores/i18n";
     import { useSvelteFlow } from "@xyflow/svelte";
     import {
         decomposeTaskWithAI,
@@ -40,6 +40,7 @@
     };
     let snap = $state<ProjectSnapshot>(get(projectStore) ?? fallback);
     let tr = $state(get(t));
+    let currentLocale = $state<Locale>(get(locale));
 
     let unsubscribe: () => void;
     $effect(() => {
@@ -49,6 +50,10 @@
     });
     $effect(() => {
         const un = t.subscribe((v) => (tr = v));
+        return () => un?.();
+    });
+    $effect(() => {
+        const un = locale.subscribe((v) => (currentLocale = v));
         return () => un?.();
     });
 
@@ -195,7 +200,7 @@
                 ? (snap.nodes ?? []).find((n) => n.id === terminalId())
                 : null;
             const goal = finalNode?.name ?? tr.finalProduct;
-            const tasks = await decomposeTaskWithAI(goal, target.name);
+            const tasks = await decomposeTaskWithAI(goal, target.name, currentLocale);
             projectStore.update((s) => {
                 const base = target.position ?? { x: 0, y: 0 };
                 const newNodes: NodeEntity[] = [];
@@ -247,6 +252,7 @@
                 // A final node exists. Generate predecessors for it.
                 const tasks = await generateFinalDeliverableWithAI(
                     finalNode.name,
+                    currentLocale,
                 );
                 projectStore.update((s) => {
                     const base = finalNode.position ?? { x: 0, y: 0 };
@@ -289,6 +295,7 @@
                 const pos = screenToFlowPosition({ x, y });
                 const tasks = await generateFinalDeliverableWithAI(
                     tr.finalProduct,
+                    currentLocale,
                 );
                 projectStore.update((s) => {
                     const newNodes: NodeEntity[] = [];

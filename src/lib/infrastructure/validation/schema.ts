@@ -19,7 +19,8 @@ export const ProjectSettingsSchema = z.object({
     projectBufferDays: z.number().nonnegative(),
     useFiftyPctEstimate: z.boolean(),
     shrinkRatio: z.number().positive(),
-    hoursPerDay: z.number().positive()
+    hoursPerDay: z.number().positive(),
+    finalProductDescription: z.string().optional(),
 });
 
 export const SnapshotSchema = z.object({

@@ -22,6 +22,7 @@
             useFiftyPctEstimate: true,
             shrinkRatio: 0.6,
             hoursPerDay: 8,
+            finalProductDescription: "",
         },
         nodes: [],
         edges: [],
@@ -104,6 +105,12 @@
             project: { ...s.project, useFiftyPctEstimate: !!checked },
         }));
     }
+    function setFinalDesc(value: string) {
+        projectStore.update((s) => ({
+            ...s,
+            project: { ...s.project, finalProductDescription: value },
+        }));
+    }
 </script>
 
 <div class="flex gap-2 border-b p-2">
@@ -115,6 +122,18 @@
     <button class={btnClass} onclick={onLoad}>{tr.load}</button>
 
     <div class="ml-auto flex items-center gap-2">
+        <label class="flex items-center gap-1"
+            >{tr.finalProductDescription}
+            <input
+                class={inputClass}
+                type="text"
+                value={snap?.project?.finalProductDescription ?? ""}
+                onchange={(e: Event) =>
+                    setFinalDesc(
+                        (e.currentTarget as HTMLInputElement).value,
+                    )}
+            />
+        </label>
         <label class="flex items-center gap-1"
             >{tr.dueDate}
             <input

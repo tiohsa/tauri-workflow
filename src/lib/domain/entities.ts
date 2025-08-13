@@ -7,6 +7,7 @@ export interface ProjectSettings {
     useFiftyPctEstimate: boolean;
     shrinkRatio: number; // 例: 0.6
     hoursPerDay: number; // 例: 8
+    finalProductDescription?: string;
 }
 
 export interface NodeEntity {

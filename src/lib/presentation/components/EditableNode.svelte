@@ -17,6 +17,7 @@
             isTerminal?: boolean;
             computedHours?: number;
             terminalNodeId?: string;
+            shouldFocus?: boolean;
         };
         selected: boolean;
     } = $props();
@@ -53,6 +54,15 @@
         editing = true;
         queueMicrotask(() => nameInputEl?.focus());
     }
+
+    // FlowCanvas から渡される shouldFocus が立っていたら
+    // 編集モードにして name 入力へフォーカス
+    $effect(() => {
+        if (data?.shouldFocus) {
+            editing = true;
+            queueMicrotask(() => nameInputEl?.focus());
+        }
+    });
 
     function commit() {
         if (!name) return;

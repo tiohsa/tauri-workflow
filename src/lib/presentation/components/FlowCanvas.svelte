@@ -59,6 +59,8 @@
 
     // 選択ノード（Tabで左に追加）
     let selectedNodeId = $state<string | null>(null);
+    // 直近に追加したノードの name 入力へフォーカスするための一時フラグ
+    let focusNodeId = $state<string | null>(null);
     const INSERT_H_GAP = 240;
     const DEFAULT_NEW_EFFORT_HOURS = 8;
     const AUTO_CONNECT_ON_INSERT = true;
@@ -111,7 +113,10 @@
         });
 
         selectedNodeId = newNode.id;
+        focusNodeId = newNode.id;
         runLayout();
+        // レンダ後にフラグを解除（1フレームあれば十分）
+        setTimeout(() => (focusNodeId = null), 0);
     }
 
     function openContextMenu(
@@ -161,6 +166,8 @@
         };
         projectStore.update((s) => ({ ...s, nodes: [...s.nodes, newNode] }));
         selectedNodeId = newNode.id;
+        focusNodeId = newNode.id;
+        setTimeout(() => (focusNodeId = null), 0);
     }
 
     function handleAddNode() {
@@ -333,6 +340,7 @@
     }
 
     function handleKeyDown(e: KeyboardEvent) {
+        if (isTypingTarget(e.target)) return;
         if (e.key === "Tab") {
             e.preventDefault();
             if (selectedNodeId) addLeftNodeOf(selectedNodeId);
@@ -389,6 +397,7 @@
                     computedHours:
                         n.id === terminalId() ? totalOthers : n.effortHours,
                     terminalNodeId: terminalId(),
+                    shouldFocus: n.id === focusNodeId,
                 },
                 type: "editable",
                 sourcePosition: Position.Right,

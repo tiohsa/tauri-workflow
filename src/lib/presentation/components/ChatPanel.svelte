@@ -79,66 +79,49 @@
     }
 </script>
 
-<div class="chat-panel">
-    <div class="messages">
+<div class="flex h-full w-72 flex-col border-l border-gray-300 bg-white">
+    <div class="flex-1 space-y-4 overflow-auto p-4">
         {#if lastTasks}
-            <div class="message">
-                <div class="prompt">{lastPrompt}</div>
-                <div class="tasks">
-                    <ul>
-                        {#each lastTasks as task}
-                            <li>{task.name} ({task.effortHours}h)</li>
-                        {/each}
-                    </ul>
-                </div>
-                <div class="actions">
-                    <button onclick={accept}>{tr.accept}</button>
-                    <button onclick={regenerate}>{tr.regenerate}</button>
+            <div class="space-y-2">
+                <div class="font-semibold">{lastPrompt}</div>
+                <ul class="list-disc pl-5 text-sm">
+                    {#each lastTasks as task}
+                        <li>{task.name} ({task.effortHours}h)</li>
+                    {/each}
+                </ul>
+                <div class="flex gap-2 pt-2">
+                    <button
+                        class="rounded bg-blue-500 px-2 py-1 text-white hover:bg-blue-600"
+                        onclick={accept}
+                    >
+                        {tr.accept}
+                    </button>
+                    <button
+                        class="rounded bg-gray-200 px-2 py-1 hover:bg-gray-300"
+                        onclick={regenerate}
+                    >
+                        {tr.regenerate}
+                    </button>
                 </div>
             </div>
         {/if}
     </div>
-    <div class="input-area">
+    <div class="flex items-center gap-2 border-t border-gray-200 p-2">
         <input
             type="text"
+            class="flex-1 rounded border border-gray-300 px-2 py-1"
             bind:value={prompt}
             placeholder={tr.promptPlaceholder}
             onkeydown={(e: KeyboardEvent) => {
                 if (e.key === "Enter") send();
             }}
         />
-        <button onclick={send} disabled={loading}>{tr.sendPrompt}</button>
+        <button
+            class="rounded bg-green-500 px-3 py-1 text-white hover:bg-green-600 disabled:opacity-50"
+            onclick={send}
+            disabled={loading}
+        >
+            {tr.sendPrompt}
+        </button>
     </div>
 </div>
-
-<style>
-    .chat-panel {
-        width: 300px;
-        border-left: 1px solid #ccc;
-        display: flex;
-        flex-direction: column;
-        height: 90vh;
-    }
-    .messages {
-        flex: 1;
-        overflow: auto;
-        padding: 8px;
-    }
-    .input-area {
-        display: flex;
-        gap: 4px;
-        padding: 8px;
-    }
-    .actions {
-        margin-top: 8px;
-        display: flex;
-        gap: 4px;
-    }
-    .tasks ul {
-        padding-left: 16px;
-    }
-    .prompt {
-        font-weight: bold;
-        margin-bottom: 4px;
-    }
-</style>

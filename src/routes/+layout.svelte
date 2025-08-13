@@ -1,6 +1,7 @@
 <script>
     import HeaderBar from "$lib/presentation/components/HeaderBar.svelte";
     import { SvelteFlowProvider } from "@xyflow/svelte";
+    import "../app.css";
 </script>
 
 <div class="h-screen w-screen flex flex-col">

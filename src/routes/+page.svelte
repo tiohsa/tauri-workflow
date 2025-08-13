@@ -3,21 +3,11 @@
   import ChatPanel from "$lib/presentation/components/ChatPanel.svelte";
 </script>
 
-<main class="container">
-  <div class="layout">
-    <div class="canvas-wrapper">
+<main class="h-full">
+  <div class="flex h-full">
+    <div class="flex-1">
       <FlowCanvas />
     </div>
     <ChatPanel />
   </div>
 </main>
-
-<style>
-  .layout {
-    display: flex;
-    height: 100vh;
-  }
-  .canvas-wrapper {
-    flex: 1;
-  }
-</style>

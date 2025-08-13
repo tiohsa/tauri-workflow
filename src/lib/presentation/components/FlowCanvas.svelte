@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { projectStore } from "$lib/presentation/stores/projectStore";
+    import { projectStore } from '$lib/presentation/stores/projectStore';
     import {
         SvelteFlow,
         Background,
@@ -8,39 +8,23 @@
         type Node as FlowNode,
         type Connection,
         Position,
-    } from "@xyflow/svelte";
-    import { get } from "svelte/store";
-    import type {
-        ProjectSnapshot,
-        NodeEntity,
-        EdgeEntity,
-    } from "$lib/domain/entities";
-    import EditableNode from "./EditableNode.svelte";
-    import "@xyflow/svelte/dist/style.css";
-    import { autoLayout } from "$lib/application/usecases/autoLayout";
-    import { t, dictionary } from "$lib/presentation/stores/i18n";
-    import { useSvelteFlow } from "@xyflow/svelte";
+    } from '@xyflow/svelte';
+    import { get } from 'svelte/store';
+    import type { ProjectSnapshot, NodeEntity, EdgeEntity } from '$lib/domain/entities';
+    import EditableNode from './EditableNode.svelte';
+    import '@xyflow/svelte/dist/style.css';
+    import { autoLayout } from '$lib/application/usecases/autoLayout';
+    import { t, dictionary } from '$lib/presentation/stores/i18n';
+    import { useSvelteFlow } from '@xyflow/svelte';
+    import { EMPTY_SNAPSHOT } from '$lib/domain/defaults';
 
-    const fallback: ProjectSnapshot = {
-        project: {
-            name: "",
-            dueDate: "",
-            projectBufferDays: 0,
-            useFiftyPctEstimate: true,
-            shrinkRatio: 0.6,
-            hoursPerDay: 8,
-        },
-        nodes: [],
-        edges: [],
-        groups: [],
-    };
-    let snap = $state<ProjectSnapshot>(get(projectStore) ?? fallback);
+    let snapshot = $state<ProjectSnapshot>(get(projectStore) ?? EMPTY_SNAPSHOT);
     let tr = $state(get(t));
 
     let unsubscribe: () => void;
     $effect(() => {
         unsubscribe?.();
-        unsubscribe = projectStore.subscribe((v) => (snap = v ?? fallback));
+        unsubscribe = projectStore.subscribe((v) => (snapshot = v ?? EMPTY_SNAPSHOT));
         return () => unsubscribe?.();
     });
     $effect(() => {
@@ -53,7 +37,8 @@
     const INSERT_H_GAP = 240;
     const DEFAULT_NEW_EFFORT_HOURS = 8;
     const AUTO_CONNECT_ON_INSERT = true;
-    const genId = (p = "n") => `${p}${crypto.randomUUID().slice(0, 8)}`;
+    const DROP_MERGE_DISTANCE = 50;
+    const genId = (p = 'n') => `${p}${crypto.randomUUID().slice(0, 8)}`;
     const { screenToFlowPosition } = useSvelteFlow();
 
     type ContextMenuState = {
@@ -65,18 +50,18 @@
     let contextMenu = $state<ContextMenuState>(null);
 
     function runLayout() {
-        const positioned = autoLayout(snap.nodes ?? [], snap.edges ?? []);
+        const positioned = autoLayout(snapshot.nodes ?? [], snapshot.edges ?? []);
         projectStore.update((s) => ({ ...s, nodes: positioned }));
     }
 
     function addLeftNodeOf(targetId: string) {
-        const target = (snap.nodes ?? []).find((n) => n.id === targetId);
+        const target = (snapshot.nodes ?? []).find((n) => n.id === targetId);
         if (!target) return;
         const tx = target.position?.x ?? 0;
         const ty = target.position?.y ?? 0;
 
         const newNode: NodeEntity = {
-            id: genId("n"),
+            id: genId('n'),
             name: tr.newTask,
             effortHours: DEFAULT_NEW_EFFORT_HOURS,
             position: { x: tx - INSERT_H_GAP, y: ty },
@@ -89,7 +74,7 @@
             };
             if (AUTO_CONNECT_ON_INSERT) {
                 const newEdge: EdgeEntity = {
-                    id: genId("e"),
+                    id: genId('e'),
                     source: newNode.id,
                     target: target.id,
                 };
@@ -190,17 +175,17 @@
         dictionary.en.finalProduct,
     ];
     const terminalId = $derived(() => {
-        const all = snap?.nodes ?? [];
+        const all = snapshot?.nodes ?? [];
         if (all.length === 0) return null;
-        const outSet = new Set((snap?.edges ?? []).map((e) => e.source)); // 出次数>0のノードID
-        const sinks = all.filter((n) => !outSet.has(n.id)); // 出次数0=終端候補
+        const outSet = new Set((snapshot?.edges ?? []).map((e) => e.source));
+        const sinks = all.filter((n) => !outSet.has(n.id));
         if (sinks.length === 1) return sinks[0].id;
         const byName = all.find((n) => FINAL_NAMES.includes(n.name));
         return byName?.id ?? all[0].id;
     });
 
-    const totalOthers = $derived(
-        (snap?.nodes ?? [])
+    const totalOtherHours = $derived(() =>
+        (snapshot?.nodes ?? [])
             .filter((n) => n.id !== terminalId())
             .reduce((sum, n) => sum + (Number(n.effortHours) || 0), 0),
     );
@@ -209,9 +194,9 @@
     $effect(() => {
         const id = terminalId();
         if (!id) return;
-        const cur = (snap.nodes ?? []).find((n) => n.id === id);
+        const cur = (snapshot.nodes ?? []).find((n) => n.id === id);
         if (!cur) return;
-        const nextVal = totalOthers;
+        const nextVal = totalOtherHours();
         const curVal = Number(cur.effortHours) || 0;
         if (Math.abs(curVal - nextVal) > 1e-9) {
             projectStore.update((s) => ({
@@ -225,7 +210,7 @@
 
     // Flow ノード/エッジ（最終成果物には computedHours を渡す）
     const nodes = $derived(
-        (snap?.nodes ?? []).map(
+        (snapshot?.nodes ?? []).map(
             (n): FlowNode<Record<string, unknown>> => ({
                 id: n.id,
                 position: n.position ?? { x: 0, y: 0 },
@@ -233,7 +218,7 @@
                     ...(n as unknown as Record<string, unknown>),
                     isTerminal: n.id === terminalId(),
                     computedHours:
-                        n.id === terminalId() ? totalOthers : n.effortHours,
+                        n.id === terminalId() ? totalOtherHours() : n.effortHours,
                     terminalNodeId: terminalId(),
                 },
                 type: "editable",
@@ -249,11 +234,12 @@
     }
 
     $effect(() => {
-        if (!selectedNodeId && snap.nodes?.length) selectNode(snap.nodes[0].id);
+        if (!selectedNodeId && snapshot.nodes?.length)
+            selectNode(snapshot.nodes[0].id);
     });
 
     const edges = $derived(
-        (snap?.edges ?? []).map(
+        (snapshot?.edges ?? []).map(
             (e): FlowEdge<Record<string, unknown>> => ({
                 id: e.id,
                 source: e.source,
@@ -319,50 +305,43 @@
     function onNodeDragStop(event: any) {
         const draggedNodeId = event.targetNode.id;
         const draggedPos = event.targetNode.position;
-        const threshold = 50; // ドロップ判定距離(px)
-
-        // Drop先候補を探索（自分以外）
-        const dropTarget = (snap.nodes ?? []).find((n) => {
+        const dropTarget = (snapshot.nodes ?? []).find((n) => {
             if (n.id === draggedNodeId) return false;
             const dx = (n.position?.x ?? 0) - draggedPos.x;
             const dy = (n.position?.y ?? 0) - draggedPos.y;
-            return Math.hypot(dx, dy) < threshold;
+            return Math.hypot(dx, dy) < DROP_MERGE_DISTANCE;
         });
 
-        if (dropTarget) {
-            const draggedNode = (snap.nodes ?? []).find(
-                (n) => n.id === draggedNodeId,
-            );
-            if (!draggedNode) return;
+        if (!dropTarget) return;
+        const draggedNode = (snapshot.nodes ?? []).find(
+            (n) => n.id === draggedNodeId,
+        );
+        if (!draggedNode) return;
 
-            projectStore.update((s) => {
-                // Drop先の工数に加算
-                const updatedNodes = s.nodes.map((n) =>
-                    n.id === dropTarget.id
-                        ? {
-                              ...n,
-                              effortHours:
-                                  (Number(n.effortHours) || 0) +
-                                  (Number(draggedNode.effortHours) || 0),
-                          }
-                        : n,
-                );
-                // Drop元削除 + 関連エッジ削除
-                return {
-                    ...s,
-                    nodes: updatedNodes.filter((n) => n.id !== draggedNodeId),
-                    edges: s.edges.filter(
-                        (e) =>
-                            e.source !== draggedNodeId &&
-                            e.target !== draggedNodeId,
-                    ),
-                    groups: s.groups.map((g) => ({
-                        ...g,
-                        nodeIds: g.nodeIds.filter((id) => id !== draggedNodeId),
-                    })),
-                };
-            });
-        }
+        projectStore.update((s) => {
+            const updatedNodes = s.nodes.map((n) =>
+                n.id === dropTarget.id
+                    ? {
+                          ...n,
+                          effortHours:
+                              (Number(n.effortHours) || 0) +
+                              (Number(draggedNode.effortHours) || 0),
+                      }
+                    : n,
+            );
+            return {
+                ...s,
+                nodes: updatedNodes.filter((n) => n.id !== draggedNodeId),
+                edges: s.edges.filter(
+                    (e) =>
+                        e.source !== draggedNodeId && e.target !== draggedNodeId,
+                ),
+                groups: s.groups.map((g) => ({
+                    ...g,
+                    nodeIds: g.nodeIds.filter((id) => id !== draggedNodeId),
+                })),
+            };
+        });
     }
 </script>
 

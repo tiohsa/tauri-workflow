@@ -1,14 +1,16 @@
 <script lang="ts">
     import { projectStore } from "$lib/presentation/stores/projectStore";
+    import type { PersistencePort } from "$lib/application/ports/persistencePort";
+    import { saveProject, loadProject } from "$lib/application/usecases/projectIO";
+    import { scheduleBackward } from "$lib/application/usecases/scheduleBackward";
+    import { computeCriticalChain } from "$lib/application/usecases/criticalChain";
+    import { autoLayout } from "$lib/application/usecases/autoLayout";
     import { TauriFsAdapter } from "$lib/infrastructure/persistence/tauriFsAdapter";
-    import { scheduleBackward } from "$lib/usecases/scheduleBackward";
-    import { computeCriticalChain } from "$lib/usecases/criticalChain";
-    import { autoLayout } from "$lib/usecases/autoLayout";
     import { get } from "svelte/store";
     import type { ProjectSnapshot } from "$lib/domain/entities";
     import { t, locale, type Locale } from "$lib/presentation/stores/i18n";
 
-    const fs = new TauriFsAdapter();
+    const persistence: PersistencePort = new TauriFsAdapter();
 
     const fallback: ProjectSnapshot = {
         project: {
@@ -71,10 +73,10 @@
     }
 
     async function onSave() {
-        await fs.save(snap);
+        await saveProject(persistence, snap);
     }
     async function onLoad() {
-        const data = await fs.load();
+        const data = await loadProject(persistence);
         projectStore.set(data);
     }
 
@@ -145,3 +147,4 @@
         </select>
     </div>
 </div>
+

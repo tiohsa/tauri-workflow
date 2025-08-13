@@ -1,4 +1,4 @@
-import type { PersistencePort } from './persistencePort';
+import type { PersistencePort } from '$lib/application/ports/persistencePort';
 import type { ProjectSnapshot } from '$lib/domain/entities';
 import { save, open } from '@tauri-apps/plugin-dialog';
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';

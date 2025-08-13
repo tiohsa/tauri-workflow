@@ -3,7 +3,7 @@
     import { projectStore } from "$lib/presentation/stores/projectStore";
     import { Handle, Position } from "@xyflow/svelte";
     import { get } from "svelte/store";
-    import { scheduleBackward } from "$lib/usecases/scheduleBackward";
+    import { scheduleBackward } from "$lib/application/usecases/scheduleBackward";
     import { t } from "$lib/presentation/stores/i18n";
 
     // SvelteFlow から渡される props

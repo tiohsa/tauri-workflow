@@ -17,7 +17,7 @@
     } from "$lib/domain/entities";
     import EditableNode from "./EditableNode.svelte";
     import "@xyflow/svelte/dist/style.css";
-    import { autoLayout } from "$lib/usecases/autoLayout";
+    import { autoLayout } from "$lib/application/usecases/autoLayout";
     import { t, dictionary } from "$lib/presentation/stores/i18n";
     import { useSvelteFlow } from "@xyflow/svelte";
 

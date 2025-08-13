@@ -11,6 +11,7 @@ function createInitialSnapshot(): ProjectSnapshot {
             useFiftyPctEstimate: true,
             shrinkRatio: 0.6,
             hoursPerDay: 8,
+            finalProductDescription: '',
         },
         nodes: [
             {

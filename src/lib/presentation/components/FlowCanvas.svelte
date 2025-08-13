@@ -38,6 +38,7 @@
             useFiftyPctEstimate: true,
             shrinkRatio: 0.6,
             hoursPerDay: 8,
+            finalProductDescription: "",
         },
         nodes: [],
         edges: [],
@@ -216,6 +217,7 @@
                 goal,
                 target.name,
                 currentLocale,
+                snap.project.finalProductDescription ?? "",
             );
             projectStore.update((s) => {
                 const base = target.position ?? { x: 0, y: 0 };
@@ -269,6 +271,7 @@
                 const tasks = await generateFinalDeliverableWithAI(
                     finalNode.name,
                     currentLocale,
+                    snap.project.finalProductDescription ?? "",
                 );
                 projectStore.update((s) => {
                     const base = finalNode.position ?? { x: 0, y: 0 };
@@ -312,6 +315,7 @@
                 const tasks = await generateFinalDeliverableWithAI(
                     tr.finalProduct,
                     currentLocale,
+                    snap.project.finalProductDescription ?? "",
                 );
                 projectStore.update((s) => {
                     const newNodes: NodeEntity[] = [];

@@ -22,6 +22,7 @@
             useFiftyPctEstimate: true,
             shrinkRatio: 0.6,
             hoursPerDay: 8,
+            finalProductDescription: "",
         },
         nodes: [],
         edges: [],
@@ -104,6 +105,25 @@
             project: { ...s.project, useFiftyPctEstimate: !!checked },
         }));
     }
+  function setFinalDesc(value: string) {
+      projectStore.update((s) => ({
+          ...s,
+          project: { ...s.project, finalProductDescription: value },
+      }));
+  }
+
+  let descDialog: HTMLDialogElement;
+  let descText = $state("");
+
+  function openDesc() {
+      descText = snap?.project?.finalProductDescription ?? "";
+      descDialog.showModal();
+  }
+
+  function confirmDesc() {
+      setFinalDesc(descText);
+      descDialog.close();
+  }
 </script>
 
 <div class="flex gap-2 border-b p-2">
@@ -115,6 +135,19 @@
     <button class={btnClass} onclick={onLoad}>{tr.load}</button>
 
     <div class="ml-auto flex items-center gap-2">
+        <button class={btnClass} onclick={openDesc}>{tr.finalProductDescription}</button>
+        <dialog bind:this={descDialog} class="rounded p-4">
+            <div class="flex flex-col gap-2">
+                <textarea
+                    class="border rounded p-1 w-80 h-40"
+                    bind:value={descText}
+                ></textarea>
+                <div class="ml-auto flex gap-2">
+                    <button class={btnClass} onclick={() => descDialog.close()}>{tr.cancel}</button>
+                    <button class={btnClass} onclick={confirmDesc}>{tr.ok}</button>
+                </div>
+            </div>
+        </dialog>
         <label class="flex items-center gap-1"
             >{tr.dueDate}
             <input

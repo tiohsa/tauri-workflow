@@ -104,19 +104,21 @@ async function callChain(
 export async function decomposeTaskWithAI(
     goal: string,
     task: string,
-    locale: Locale
+    locale: Locale,
+    goalDescription: string = ""
 ): Promise<NodeEntity[]> {
     const text = PROMPTS[locale].decompose;
-    return callChain(text, { goal, task }, locale);
+    return callChain(text, { goal, task, goalDescription }, locale);
 }
 
 // 最終成果物へ至るシーケンス生成
 export async function generateFinalDeliverableWithAI(
     goal: string,
-    locale: Locale
+    locale: Locale,
+    goalDescription: string = ""
 ): Promise<NodeEntity[]> {
     const text = PROMPTS[locale].finalDeliverable;
-    return callChain(text, { goal }, locale);
+    return callChain(text, { goal, goalDescription }, locale);
 }
 
 // 任意のプロンプトからタスクを生成

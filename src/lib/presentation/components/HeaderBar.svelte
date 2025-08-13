@@ -1,14 +1,15 @@
 <script lang="ts">
     import { projectStore, resetProject } from "$lib/presentation/stores/projectStore";
-    import { TauriFsAdapter } from "$lib/infrastructure/persistence/tauriFsAdapter";
+    import { usePersistencePort } from "$lib/presentation/services/persistence";
     import { scheduleBackward } from "$lib/usecases/scheduleBackward";
     import { computeCriticalChain } from "$lib/usecases/criticalChain";
     import { autoLayout } from "$lib/usecases/autoLayout";
+    import { saveProject, loadProject } from "$lib/usecases/persistence";
     import { get } from "svelte/store";
     import type { ProjectSnapshot } from "$lib/domain/entities";
     import { t, locale, type Locale } from "$lib/presentation/stores/i18n";
 
-    const fs = new TauriFsAdapter();
+    const persistencePort = usePersistencePort();
 
     const btnClass = "rounded bg-gray-200 px-2 py-1 hover:bg-gray-300";
     const inputClass = "border rounded px-1";
@@ -74,10 +75,10 @@
     }
 
     async function onSave() {
-        await fs.save(snap);
+        await saveProject(persistencePort, snap);
     }
     async function onLoad() {
-        const data = await fs.load();
+        const data = await loadProject(persistencePort);
         projectStore.set(data);
     }
 

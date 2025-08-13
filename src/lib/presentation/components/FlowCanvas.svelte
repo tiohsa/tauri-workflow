@@ -18,7 +18,12 @@
     import EditableNode from "./EditableNode.svelte";
     import "@xyflow/svelte/dist/style.css";
     import { autoLayout } from "$lib/usecases/autoLayout";
-    import { t, dictionary, locale, type Locale } from "$lib/presentation/stores/i18n";
+    import {
+        t,
+        dictionary,
+        locale,
+        type Locale,
+    } from "$lib/presentation/stores/i18n";
     import { useSvelteFlow } from "@xyflow/svelte";
     import {
         decomposeTaskWithAI,
@@ -207,7 +212,11 @@
                 ? (snap.nodes ?? []).find((n) => n.id === terminalId())
                 : null;
             const goal = finalNode?.name ?? tr.finalProduct;
-            const tasks = await decomposeTaskWithAI(goal, target.name, currentLocale);
+            const tasks = await decomposeTaskWithAI(
+                goal,
+                target.name,
+                currentLocale,
+            );
             projectStore.update((s) => {
                 const base = target.position ?? { x: 0, y: 0 };
                 const newNodes: NodeEntity[] = [];

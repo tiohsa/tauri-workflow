@@ -284,7 +284,7 @@
         opacity: 0.8;
     }
     .date {
-        padding: 0px 15px 0px 15px;
+        padding: 0px 2px 0px 2px;
         font-size: 12px;
         border-radius: 2px;
     }

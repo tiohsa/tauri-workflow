@@ -1,6 +1,16 @@
 import type { EdgeEntity, NodeEntity } from '$lib/domain/entities';
 
-export function autoLayout(nodes: NodeEntity[], edges: EdgeEntity[], hGap = 280, vGap = 110) {
+export function autoLayout(
+    nodes: NodeEntity[],
+    edges: EdgeEntity[],
+    hGap = 280,
+    vGap = 110,
+) {
+    // Estimated node size used for collision checks (should be >= actual sizes)
+    const NODE_WIDTH = 200; // px (min-width is 180px; add margin)
+    const NODE_HEIGHT = 100; // px (label + meta + padding)
+    const MARGIN_X = Math.max(40, Math.floor((hGap - NODE_WIDTH) / 2));
+    const MARGIN_Y = Math.max(20, Math.floor((vGap - NODE_HEIGHT) / 2));
     const succ = new Map<string, string[]>();
     const pred = new Map<string, string[]>();
     nodes.forEach(n => { succ.set(n.id, []); pred.set(n.id, []); });
@@ -50,9 +60,23 @@ export function autoLayout(nodes: NodeEntity[], edges: EdgeEntity[], hGap = 280,
             const x = -lvl * hGap;
             let y = i * vGap;
 
-            // ensure nodes do not overlap by shifting down until free
-            while (placed.some(p => Math.abs(p.x - x) < hGap && Math.abs(p.y - y) < vGap)) {
-                y += vGap;
+            // Ensure nodes do not overlap by shifting down until free
+            // Use bounding-box collision with generous margins
+            const stepY = Math.max(vGap, NODE_HEIGHT + MARGIN_Y);
+            while (
+                placed.some((p) => {
+                    const overlapX = !(
+                        x + NODE_WIDTH + MARGIN_X <= p.x ||
+                        p.x + NODE_WIDTH + MARGIN_X <= x
+                    );
+                    const overlapY = !(
+                        y + NODE_HEIGHT + MARGIN_Y <= p.y ||
+                        p.y + NODE_HEIGHT + MARGIN_Y <= y
+                    );
+                    return overlapX && overlapY;
+                })
+            ) {
+                y += stepY;
             }
             placed.push({ x, y });
 

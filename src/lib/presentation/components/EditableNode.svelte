@@ -227,13 +227,16 @@
         border: 1px solid #d1d5db;
         background: white;
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-        min-width: 180px;
+        width: 180px; /* 固定幅 */
     }
     .node.selected {
         outline: 2px solid #4f46e5;
     }
     .label .title {
         font-weight: 600;
+        white-space: normal; /* 折り返しを許可 */
+        word-break: break-word;
+        overflow-wrap: anywhere;
     }
     .label .meta {
         font-size: 12px;
@@ -249,6 +252,8 @@
         border: 1px solid #d1d5db;
         padding: 4px 6px;
         border-radius: 6px;
+        width: 100%; /* 編集時も固定幅内に収める */
+        box-sizing: border-box;
     }
     .btn {
         padding: 4px 8px;

@@ -10,6 +10,9 @@
 
     const fs = new TauriFsAdapter();
 
+    const btnClass = "rounded bg-gray-200 px-2 py-1 hover:bg-gray-300";
+    const inputClass = "border rounded px-1";
+
     const fallback: ProjectSnapshot = {
         project: {
             name: "",
@@ -102,27 +105,29 @@
     }
 </script>
 
-<div class="flex gap-2 p-2 border-b">
-    <button onclick={runLayout}>{tr.align}</button>
-    <button onclick={runSchedule}>{tr.schedule}</button>
-    <button onclick={markCC}>{tr.criticalChain}</button>
-    <button onclick={onNew}>{tr.newProject}</button>
-    <button onclick={onSave}>{tr.save}</button>
-    <button onclick={onLoad}>{tr.load}</button>
+<div class="flex gap-2 border-b p-2">
+    <button class={btnClass} onclick={runLayout}>{tr.align}</button>
+    <button class={btnClass} onclick={runSchedule}>{tr.schedule}</button>
+    <button class={btnClass} onclick={markCC}>{tr.criticalChain}</button>
+    <button class={btnClass} onclick={onNew}>{tr.newProject}</button>
+    <button class={btnClass} onclick={onSave}>{tr.save}</button>
+    <button class={btnClass} onclick={onLoad}>{tr.load}</button>
 
     <div class="ml-auto flex items-center gap-2">
-        <label
+        <label class="flex items-center gap-1"
             >{tr.dueDate}
             <input
+                class={inputClass}
                 type="date"
                 value={snap?.project?.dueDate ?? ""}
                 onchange={(e: Event) =>
                     setDueDate((e.currentTarget as HTMLInputElement).value)}
             />
         </label>
-        <label
+        <label class="flex items-center gap-1"
             >{tr.projectBuffer}
             <input
+                class={inputClass}
                 type="number"
                 step="1"
                 min="0"
@@ -131,9 +136,10 @@
                     setPB((e.currentTarget as HTMLInputElement).value)}
             />
         </label>
-        <label
+        <label class="flex items-center gap-1"
             >{tr.use50}
             <input
+                class="h-4 w-4"
                 type="checkbox"
                 checked={!!snap?.project?.useFiftyPctEstimate}
                 onchange={(e: Event) =>
@@ -141,6 +147,7 @@
             />
         </label>
         <select
+            class={inputClass}
             bind:value={currentLocale}
             onchange={(e) =>
                 locale.set((e.currentTarget as HTMLSelectElement).value as Locale)}

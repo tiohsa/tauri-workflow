@@ -18,8 +18,12 @@
     import EditableNode from "./EditableNode.svelte";
     import "@xyflow/svelte/dist/style.css";
     import { autoLayout } from "$lib/usecases/autoLayout";
-    import { t, dictionary } from "$lib/presentation/stores/i18n";
+    import { t, dictionary, locale, type Locale } from "$lib/presentation/stores/i18n";
     import { useSvelteFlow } from "@xyflow/svelte";
+    import {
+        decomposeTaskWithAI,
+        generateFinalDeliverableWithAI,
+    } from "$lib/infrastructure/ai/taskGenerator";
 
     const fallback: ProjectSnapshot = {
         project: {
@@ -36,6 +40,7 @@
     };
     let snap = $state<ProjectSnapshot>(get(projectStore) ?? fallback);
     let tr = $state(get(t));
+    let currentLocale = $state<Locale>(get(locale));
 
     let unsubscribe: () => void;
     $effect(() => {
@@ -45,6 +50,10 @@
     });
     $effect(() => {
         const un = t.subscribe((v) => (tr = v));
+        return () => un?.();
+    });
+    $effect(() => {
+        const un = locale.subscribe((v) => (currentLocale = v));
         return () => un?.();
     });
 
@@ -63,6 +72,7 @@
         targetId?: string;
     } | null;
     let contextMenu = $state<ContextMenuState>(null);
+    let processing = $state(false);
 
     function runLayout() {
         const positioned = autoLayout(snap.nodes ?? [], snap.edges ?? []);
@@ -176,6 +186,150 @@
             edges: s.edges.filter((e) => e.id !== id),
         }));
         closeContextMenu();
+    }
+
+    async function handleDecomposeTask() {
+        if (!contextMenu?.targetId) return;
+        const targetId = contextMenu.targetId;
+        closeContextMenu();
+        processing = true;
+        try {
+            const target = (snap.nodes ?? []).find((n) => n.id === targetId);
+            if (!target) return;
+            const finalNode = terminalId
+                ? (snap.nodes ?? []).find((n) => n.id === terminalId())
+                : null;
+            const goal = finalNode?.name ?? tr.finalProduct;
+            const tasks = await decomposeTaskWithAI(goal, target.name, currentLocale);
+            projectStore.update((s) => {
+                const base = target.position ?? { x: 0, y: 0 };
+                const newNodes: NodeEntity[] = [];
+                const newEdges: EdgeEntity[] = [];
+                let prevId = target.id;
+                tasks
+                    .slice()
+                    .reverse()
+                    .forEach((t, idx) => {
+                        const id = genId("n");
+                        newNodes.push({
+                            id,
+                            name: t.name,
+                            effortHours: t.effortHours,
+                            position: {
+                                x: base.x - INSERT_H_GAP * (idx + 1),
+                                y: base.y,
+                            },
+                        });
+                        newEdges.push({
+                            id: genId("e"),
+                            source: id,
+                            target: prevId,
+                        });
+                        prevId = id;
+                    });
+                return {
+                    ...s,
+                    nodes: [...s.nodes, ...newNodes],
+                    edges: [...s.edges, ...newEdges],
+                };
+            });
+        } finally {
+            processing = false;
+        }
+    }
+
+    async function handleGenerateFinalTask() {
+        if (!contextMenu) return;
+        const { x, y } = contextMenu;
+        closeContextMenu();
+        processing = true;
+        try {
+            const finalNode = terminalId()
+                ? (snap.nodes ?? []).find((n) => n.id === terminalId())
+                : null;
+
+            if (finalNode) {
+                // A final node exists. Generate predecessors for it.
+                const tasks = await generateFinalDeliverableWithAI(
+                    finalNode.name,
+                    currentLocale,
+                );
+                projectStore.update((s) => {
+                    const base = finalNode.position ?? { x: 0, y: 0 };
+                    const newNodes: NodeEntity[] = [];
+                    const newEdges: EdgeEntity[] = [];
+                    let prevId = finalNode.id;
+
+                    // The AI returns the whole chain including the final task. We skip the last one.
+                    const predecessorTasks = tasks.slice(0, -1);
+
+                    predecessorTasks
+                        .slice()
+                        .reverse()
+                        .forEach((t, idx) => {
+                            const id = genId("n");
+                            newNodes.push({
+                                id,
+                                name: t.name,
+                                effortHours: t.effortHours,
+                                position: {
+                                    x: base.x - INSERT_H_GAP * (idx + 1),
+                                    y: base.y,
+                                },
+                            });
+                            newEdges.push({
+                                id: genId("e"),
+                                source: id,
+                                target: prevId,
+                            });
+                            prevId = id;
+                        });
+                    return {
+                        ...s,
+                        nodes: [...s.nodes, ...newNodes],
+                        edges: [...s.edges, ...newEdges],
+                    };
+                });
+            } else {
+                // No final node. Create a new graph from scratch.
+                const pos = screenToFlowPosition({ x, y });
+                const tasks = await generateFinalDeliverableWithAI(
+                    tr.finalProduct,
+                    currentLocale,
+                );
+                projectStore.update((s) => {
+                    const newNodes: NodeEntity[] = [];
+                    const newEdges: EdgeEntity[] = [];
+                    let prev: string | null = null;
+                    tasks.forEach((t, idx) => {
+                        const id = genId("n");
+                        newNodes.push({
+                            id,
+                            name: t.name,
+                            effortHours: t.effortHours,
+                            position: {
+                                x: pos.x + INSERT_H_GAP * idx,
+                                y: pos.y,
+                            },
+                        });
+                        if (prev)
+                            newEdges.push({
+                                id: genId("e"),
+                                source: prev,
+                                target: id,
+                            });
+                        prev = id;
+                    });
+                    return {
+                        ...s,
+                        nodes: [...s.nodes, ...newNodes],
+                        edges: [...s.edges, ...newEdges],
+                    };
+                });
+            }
+        } finally {
+            processing = false;
+        }
     }
 
     function handleKeyDown(e: KeyboardEvent) {
@@ -368,7 +522,7 @@
 
 <svelte:window on:keydown={handleKeyDown} />
 
-<div style:width="100vw" style:height="100vh" on:click={closeContextMenu}>
+<div class="canvas-root" on:click={closeContextMenu}>
     <SvelteFlow
         {nodes}
         {edges}
@@ -394,9 +548,13 @@
             <ul>
                 {#if contextMenu.type === "pane"}
                     <li on:click={handleAddNode}>{tr.addNode}</li>
+                    <li on:click={handleGenerateFinalTask}>
+                        {tr.generateFinalTask}
+                    </li>
                 {:else if contextMenu.type === "node"}
                     <li on:click={handleAddNode}>{tr.addNode}</li>
                     <li on:click={handleDeleteNode}>{tr.deleteNode}</li>
+                    <li on:click={handleDecomposeTask}>{tr.decomposeTask}</li>
                 {:else if contextMenu.type === "edge"}
                     <li on:click={handleDeleteEdge}>
                         {tr.deleteConnector}
@@ -405,9 +563,29 @@
             </ul>
         </div>
     {/if}
+    {#if processing}
+        <div class="processing-overlay">{tr.processing}</div>
+    {/if}
 </div>
 
 <style>
+    .canvas-root {
+        width: 100%;
+        height: 90%;
+        position: relative;
+    }
+    .processing-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.7);
+        z-index: 2000;
+    }
     .context-menu {
         position: absolute;
         z-index: 1000;

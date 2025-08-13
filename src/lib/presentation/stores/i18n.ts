@@ -14,6 +14,7 @@ export const dictionary: Record<Locale, Record<string, string>> = {
     projectBuffer: 'PB',
     use50: '50%',
     newTask: '',
+    newProject: '新規作成',
     finalProduct: '最終成果物',
     ccTitle: 'クリティカルチェーン',
     totalHours: '合計時間',
@@ -22,7 +23,14 @@ export const dictionary: Record<Locale, Record<string, string>> = {
     cancel: 'キャンセル',
     addNode: 'ノードを追加',
     deleteNode: 'ノードを削除',
-    deleteConnector: 'コネクタを削除'
+    deleteConnector: 'コネクタを削除',
+    decomposeTask: 'タスクを分解',
+    generateFinalTask: '最終成果物タスクを生成',
+    processing: '処理中...',
+    sendPrompt: '送信',
+    accept: '受け入れる',
+    regenerate: '再生成',
+    promptPlaceholder: 'プロンプトを入力...'
   },
   en: {
     align: 'Align',
@@ -34,6 +42,7 @@ export const dictionary: Record<Locale, Record<string, string>> = {
     projectBuffer: 'PB',
     use50: '50%',
     newTask: '',
+    newProject: 'New',
     finalProduct: 'Final Product',
     ccTitle: 'Critical Chain',
     totalHours: 'Total Hours',
@@ -42,7 +51,14 @@ export const dictionary: Record<Locale, Record<string, string>> = {
     cancel: 'Cancel',
     addNode: 'Add Node',
     deleteNode: 'Delete Node',
-    deleteConnector: 'Delete Connector'
+    deleteConnector: 'Delete Connector',
+    decomposeTask: 'Decompose Task',
+    generateFinalTask: 'Generate Final Task',
+    processing: 'Processing...',
+    sendPrompt: 'Send',
+    accept: 'Accept',
+    regenerate: 'Regenerate',
+    promptPlaceholder: 'Enter prompt...'
   }
 };
 

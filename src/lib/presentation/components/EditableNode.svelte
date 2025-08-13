@@ -21,9 +21,11 @@
         selected: boolean;
     } = $props();
 
-    let editing = $state(true);
+    let editing = $state(false);
     let name = $state(data?.name ?? "");
     let hours = $state<number | string>(data?.effortHours ?? 0);
+    let startDate = $state(data?.start ?? "");
+    let endDate = $state(data?.end ?? "");
     let tr = $state(get(t));
 
     let nameInputEl: HTMLInputElement | null = null;
@@ -32,6 +34,8 @@
         name = data?.name ?? "";
         hours =
             (data?.isTerminal ? data?.computedHours : data?.effortHours) ?? 0;
+        startDate = data?.start ?? "";
+        endDate = data?.end ?? "";
     });
 
     $effect(() => {
@@ -52,22 +56,29 @@
 
     function commit() {
         if (!name) return;
-        if (data?.isTerminal) {
-            // 最終成果物は名称のみ更新（時間は自動集計）
-            projectStore.update((s) => ({
-                ...s,
-                nodes: s.nodes.map((n) => (n.id === id ? { ...n, name } : n)),
-            }));
-        } else {
-            const h = Number(hours);
-            if (!Number.isFinite(h) || h <= 0) return;
-            projectStore.update((s) => ({
-                ...s,
-                nodes: s.nodes.map((n) =>
-                    n.id === id ? { ...n, name, effortHours: h } : n,
-                ),
-            }));
-        }
+        const h = Number(hours);
+        if (!data?.isTerminal && (!Number.isFinite(h) || h <= 0)) return;
+        const startChanged = startDate !== (data?.start ?? "");
+        const endChanged = endDate !== (data?.end ?? "");
+        projectStore.update((s) => ({
+            ...s,
+            nodes: s.nodes.map((n) => {
+                if (n.id !== id) return n;
+                const updated: NodeEntity = {
+                    ...n,
+                    name,
+                    start: startDate,
+                    end: endDate,
+                };
+                if (!data?.isTerminal) {
+                    updated.effortHours = h;
+                }
+                if (startChanged || endChanged) {
+                    updated.locked = true;
+                }
+                return updated;
+            }),
+        }));
         editing = false;
 
         // 再計算
@@ -87,6 +98,8 @@
         name = data?.name ?? "";
         hours =
             (data?.isTerminal ? data?.computedHours : data?.effortHours) ?? 0;
+        startDate = data?.start ?? "";
+        endDate = data?.end ?? "";
         editing = false;
     }
 
@@ -100,6 +113,26 @@
             cancel();
         }
     }
+
+    function toggleLock(e: MouseEvent) {
+        e.stopPropagation();
+        projectStore.update((s) => ({
+            ...s,
+            nodes: s.nodes.map((n) =>
+                n.id === id ? { ...n, locked: !n.locked } : n,
+            ),
+        }));
+        const s = get(projectStore);
+        if (data.terminalNodeId) {
+            const res = scheduleBackward(
+                s.nodes,
+                s.edges,
+                s.project,
+                data.terminalNodeId,
+            );
+            projectStore.update((cur) => ({ ...cur, nodes: res.nodes }));
+        }
+    }
 </script>
 
 <div
@@ -109,7 +142,7 @@
     role="button"
     tabindex="0"
 >
-    {#if editing && !data?.isTerminal}
+    {#if editing}
         <div
             class="editor"
             onkeydown={onKeyDown}
@@ -125,6 +158,11 @@
                     placeholder={tr.taskName}
                     bind:value={name}
                 />
+            </div>
+            <div class="dates">
+                <input class="in date-in" type="date" bind:value={startDate} />
+                <span class="unit">→</span>
+                <input class="in date-in" type="date" bind:value={endDate} />
             </div>
             <div>
                 {#if !data?.isTerminal}
@@ -168,6 +206,9 @@
                         : data?.effortHours) ?? 0}h
                 </span>
                 <span class="date">{data.end}</span>
+                <button class="lock" onclick={toggleLock}>
+                    {data.locked ? "🔒" : "🔓"}
+                </button>
             </div>
             <div></div>
         </div>
@@ -234,5 +275,16 @@
     }
     .space {
         width: 60px;
+    }
+    .date-in {
+        width: 6.5rem;
+        font-size: 12px;
+    }
+    .lock {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 12px;
+        padding: 0 4px;
     }
 </style>

@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { projectStore } from "$lib/presentation/stores/projectStore";
+    import { projectStore, resetProject } from "$lib/presentation/stores/projectStore";
     import { TauriFsAdapter } from "$lib/infrastructure/persistence/tauriFsAdapter";
     import { scheduleBackward } from "$lib/usecases/scheduleBackward";
     import { computeCriticalChain } from "$lib/usecases/criticalChain";
@@ -78,6 +78,10 @@
         projectStore.set(data);
     }
 
+    function onNew() {
+        resetProject();
+    }
+
     function setDueDate(value: string) {
         projectStore.update((s) => ({
             ...s,
@@ -102,6 +106,7 @@
     <button onclick={runLayout}>{tr.align}</button>
     <button onclick={runSchedule}>{tr.schedule}</button>
     <button onclick={markCC}>{tr.criticalChain}</button>
+    <button onclick={onNew}>{tr.newProject}</button>
     <button onclick={onSave}>{tr.save}</button>
     <button onclick={onLoad}>{tr.load}</button>
 

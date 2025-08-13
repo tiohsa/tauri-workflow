@@ -26,7 +26,11 @@ export const dictionary: Record<Locale, Record<string, string>> = {
     deleteConnector: 'コネクタを削除',
     decomposeTask: 'タスクを分解',
     generateFinalTask: '最終成果物タスクを生成',
-    processing: '処理中...'
+    processing: '処理中...',
+    sendPrompt: '送信',
+    accept: '受け入れる',
+    regenerate: '再生成',
+    promptPlaceholder: 'プロンプトを入力...'
   },
   en: {
     align: 'Align',
@@ -50,7 +54,11 @@ export const dictionary: Record<Locale, Record<string, string>> = {
     deleteConnector: 'Delete Connector',
     decomposeTask: 'Decompose Task',
     generateFinalTask: 'Generate Final Task',
-    processing: 'Processing...'
+    processing: 'Processing...',
+    sendPrompt: 'Send',
+    accept: 'Accept',
+    regenerate: 'Regenerate',
+    promptPlaceholder: 'Enter prompt...'
   }
 };
 

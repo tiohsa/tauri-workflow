@@ -9,6 +9,8 @@
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "test": "vitest run --reporter=verbose",
+    "test:watch": "vitest",
     "tauri": "tauri"
   },
   "license": "MIT",
@@ -23,6 +25,7 @@
     "rete-render-utils": "^2.0.3",
     "rete-svelte-plugin": "^2.1.1",
     "sass": "^1.89.2",
+    "vitest": "^3.2.4",
     "zod": "^4.0.16"
   },
   "devDependencies": {

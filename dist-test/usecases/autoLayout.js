@@ -1,95 +1,74 @@
-import type { EdgeEntity, NodeEntity } from '../domain/entities';
-
-export function autoLayout(
-    nodes: NodeEntity[],
-    edges: EdgeEntity[],
-    hGap = 280,
-    vGap = 110,
-) {
+export function autoLayout(nodes, edges, hGap = 280, vGap = 110) {
     // Estimated node size used for collision checks (should be >= actual sizes)
     const NODE_WIDTH = 200; // px (min-width is 180px; add margin)
     const NODE_HEIGHT = 100; // px (label + meta + padding)
     const MARGIN_X = Math.max(40, Math.floor((hGap - NODE_WIDTH) / 2));
     const MARGIN_Y = Math.max(20, Math.floor((vGap - NODE_HEIGHT) / 2));
-    const succ = new Map<string, string[]>();
-    const pred = new Map<string, string[]>();
+    const succ = new Map();
+    const pred = new Map();
     nodes.forEach(n => { succ.set(n.id, []); pred.set(n.id, []); });
-    edges.forEach(e => { succ.get(e.source)!.push(e.target); pred.get(e.target)!.push(e.source); });
-
-    const level = new Map<string, number>();
+    edges.forEach(e => { succ.get(e.source).push(e.target); pred.get(e.target).push(e.source); });
+    const level = new Map();
     const sinks = nodes.filter(n => (succ.get(n.id) ?? []).length === 0).map(n => n.id);
     const queue = [...sinks];
     sinks.forEach(id => level.set(id, 0));
-
     while (queue.length) {
-        const v = queue.shift()!;
-        const lv = level.get(v)!;
+        const v = queue.shift();
+        const lv = level.get(v);
         for (const p of pred.get(v) ?? []) {
             const lp = Math.max(level.get(p) ?? 0, lv + 1);
             level.set(p, lp);
             queue.push(p);
         }
     }
-
-    const grouped = new Map<number, NodeEntity[]>();
+    const grouped = new Map();
     for (const n of nodes) {
         const l = level.get(n.id) ?? 0;
         const arr = grouped.get(l) ?? [];
-        arr.push(n); grouped.set(l, arr);
+        arr.push(n);
+        grouped.set(l, arr);
     }
-
-    const positioned: NodeEntity[] = [];
-    const order = new Map<string, number>();
-    const placed: { x: number; y: number }[] = [];
-
+    const positioned = [];
+    const order = new Map();
+    const placed = [];
     // sort each level while trying to minimise edge crossings
     const levels = [...grouped.keys()].sort((a, b) => a - b);
     for (const lvl of levels) {
-        const list = grouped.get(lvl)!;
-
+        const list = grouped.get(lvl);
         const sorted = list
             .slice()
             .sort((a, b) => {
-                const ba = barycenter(a.id);
-                const bb = barycenter(b.id);
-                if (ba === bb) return a.name.localeCompare(b.name);
-                return ba - bb;
-            });
-
+            const ba = barycenter(a.id);
+            const bb = barycenter(b.id);
+            if (ba === bb)
+                return a.name.localeCompare(b.name);
+            return ba - bb;
+        });
         sorted.forEach((n, i) => {
             const x = -lvl * hGap;
             let y = i * vGap;
-
             // Ensure nodes do not overlap by shifting down until free
             // Use bounding-box collision with generous margins
             const stepY = Math.max(vGap, NODE_HEIGHT + MARGIN_Y);
-            while (
-                placed.some((p) => {
-                    const overlapX = !(
-                        x + NODE_WIDTH + MARGIN_X <= p.x ||
-                        p.x + NODE_WIDTH + MARGIN_X <= x
-                    );
-                    const overlapY = !(
-                        y + NODE_HEIGHT + MARGIN_Y <= p.y ||
-                        p.y + NODE_HEIGHT + MARGIN_Y <= y
-                    );
-                    return overlapX && overlapY;
-                })
-            ) {
+            while (placed.some((p) => {
+                const overlapX = !(x + NODE_WIDTH + MARGIN_X <= p.x ||
+                    p.x + NODE_WIDTH + MARGIN_X <= x);
+                const overlapY = !(y + NODE_HEIGHT + MARGIN_Y <= p.y ||
+                    p.y + NODE_HEIGHT + MARGIN_Y <= y);
+                return overlapX && overlapY;
+            })) {
                 y += stepY;
             }
             placed.push({ x, y });
-
             positioned.push({ ...n, position: { x, y } });
             order.set(n.id, i);
         });
     }
-
     return positioned;
-
-    function barycenter(id: string): number {
+    function barycenter(id) {
         const list = succ.get(id) ?? [];
-        if (list.length === 0) return Number.POSITIVE_INFINITY;
+        if (list.length === 0)
+            return Number.POSITIVE_INFINITY;
         const sum = list.reduce((acc, cur) => acc + (order.get(cur) ?? 0), 0);
         return sum / list.length;
     }

@@ -117,11 +117,23 @@
             }}
         />
         <button
-            class="rounded bg-green-500 px-3 py-1 text-white hover:bg-green-600 disabled:opacity-50"
+            class="inline-flex items-center justify-center rounded bg-green-500 p-2 text-white hover:bg-green-600 disabled:opacity-50"
             onclick={send}
             disabled={loading}
+            aria-label={tr.sendPrompt}
+            title={tr.sendPrompt}
         >
-            {tr.sendPrompt}
+            <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                width="20"
+                height="20"
+                fill="currentColor"
+                aria-hidden="true"
+            >
+                <!-- simple paper plane icon -->
+                <polygon points="2,21 23,12 2,3 7,12 2,21" />
+            </svg>
         </button>
     </div>
 </div>

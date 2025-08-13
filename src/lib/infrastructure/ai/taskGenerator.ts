@@ -75,18 +75,19 @@ async function callChain(
 }
 
 // タスク分解（日本語で返す）
-export async function decomposeTaskWithAI(task: string): Promise<NodeEntity[]> {
+export async function decomposeTaskWithAI(goal: string, task: string): Promise<NodeEntity[]> {
     const text =
-        "与えられたタスクをより小さなタスクへ分解してください。スキーマに厳密に従ったJSONのみを返してください。";
-    return callChain(text, { task });
+        "入力として goal（最終成果物の目的）と タスク（goal達成のためのタスクの一部）が与えられる。与えられたタスクは、goalに至る工程の中で特定の作業を示すものであり、そのタスクをさらに細かい作業単位に分解する。分解後のタスクは 1つにつき1つの作業内容 とし、複数の作業をまとめないこと。タスクは具体的かつ簡潔に記述し、分解したタスクだけでその元のタスクの内容が完全に実行できる状態にする。";
+    return callChain(text, { "goal": goal, "task": task });
 }
+
 
 // 最終成果物へ至るシーケンス生成（日本語で返す）
 export async function generateFinalDeliverableWithAI(
     goal: string
 ): Promise<NodeEntity[]> {
     const text =
-        "記述された最終成果物に到達するためのタスクのシーケンスを作成してください。スキーマに厳密に従ったJSONのみを返してください。";
+        "入力として与えられる goal を分析し、その最終成果物を実現するために最も適した エキスパート像（専門分野・役割） を具体的かつ明確に定義する。その定義したエキスパートとして、最終成果物に到達するためのタスクを順序立てて作成する。タスクは 1つにつき1つの作業内容 とし、複数の作業をまとめないこと。タスクは可能な限り具体的かつ簡潔に記述し、成果物までの全工程を漏れなくカバーする。";
     return callChain(text, { goal });
 }
 

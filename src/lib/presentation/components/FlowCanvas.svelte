@@ -191,7 +191,11 @@
         try {
             const target = (snap.nodes ?? []).find((n) => n.id === targetId);
             if (!target) return;
-            const tasks = await decomposeTaskWithAI(target.name);
+            const finalNode = terminalId
+                ? (snap.nodes ?? []).find((n) => n.id === terminalId())
+                : null;
+            const goal = finalNode?.name ?? tr.finalProduct;
+            const tasks = await decomposeTaskWithAI(goal, target.name);
             projectStore.update((s) => {
                 const base = target.position ?? { x: 0, y: 0 };
                 const newNodes: NodeEntity[] = [];
@@ -211,7 +215,11 @@
                                 y: base.y,
                             },
                         });
-                        newEdges.push({ id: genId("e"), source: id, target: prevId });
+                        newEdges.push({
+                            id: genId("e"),
+                            source: id,
+                            target: prevId,
+                        });
                         prevId = id;
                     });
                 return {
@@ -231,33 +239,87 @@
         closeContextMenu();
         processing = true;
         try {
-            const pos = screenToFlowPosition({ x, y });
-            const tasks = await generateFinalDeliverableWithAI(tr.finalProduct);
-            projectStore.update((s) => {
-                const newNodes: NodeEntity[] = [];
-                const newEdges: EdgeEntity[] = [];
-                let prev: string | null = null;
-                tasks.forEach((t, idx) => {
-                    const id = genId("n");
-                    newNodes.push({
-                        id,
-                        name: t.name,
-                        effortHours: t.effortHours,
-                        position: {
-                            x: pos.x + INSERT_H_GAP * idx,
-                            y: pos.y,
-                        },
-                    });
-                    if (prev)
-                        newEdges.push({ id: genId("e"), source: prev, target: id });
-                    prev = id;
+            const finalNode = terminalId()
+                ? (snap.nodes ?? []).find((n) => n.id === terminalId())
+                : null;
+
+            if (finalNode) {
+                // A final node exists. Generate predecessors for it.
+                const tasks = await generateFinalDeliverableWithAI(
+                    finalNode.name,
+                );
+                projectStore.update((s) => {
+                    const base = finalNode.position ?? { x: 0, y: 0 };
+                    const newNodes: NodeEntity[] = [];
+                    const newEdges: EdgeEntity[] = [];
+                    let prevId = finalNode.id;
+
+                    // The AI returns the whole chain including the final task. We skip the last one.
+                    const predecessorTasks = tasks.slice(0, -1);
+
+                    predecessorTasks
+                        .slice()
+                        .reverse()
+                        .forEach((t, idx) => {
+                            const id = genId("n");
+                            newNodes.push({
+                                id,
+                                name: t.name,
+                                effortHours: t.effortHours,
+                                position: {
+                                    x: base.x - INSERT_H_GAP * (idx + 1),
+                                    y: base.y,
+                                },
+                            });
+                            newEdges.push({
+                                id: genId("e"),
+                                source: id,
+                                target: prevId,
+                            });
+                            prevId = id;
+                        });
+                    return {
+                        ...s,
+                        nodes: [...s.nodes, ...newNodes],
+                        edges: [...s.edges, ...newEdges],
+                    };
                 });
-                return {
-                    ...s,
-                    nodes: [...s.nodes, ...newNodes],
-                    edges: [...s.edges, ...newEdges],
-                };
-            });
+            } else {
+                // No final node. Create a new graph from scratch.
+                const pos = screenToFlowPosition({ x, y });
+                const tasks = await generateFinalDeliverableWithAI(
+                    tr.finalProduct,
+                );
+                projectStore.update((s) => {
+                    const newNodes: NodeEntity[] = [];
+                    const newEdges: EdgeEntity[] = [];
+                    let prev: string | null = null;
+                    tasks.forEach((t, idx) => {
+                        const id = genId("n");
+                        newNodes.push({
+                            id,
+                            name: t.name,
+                            effortHours: t.effortHours,
+                            position: {
+                                x: pos.x + INSERT_H_GAP * idx,
+                                y: pos.y,
+                            },
+                        });
+                        if (prev)
+                            newEdges.push({
+                                id: genId("e"),
+                                source: prev,
+                                target: id,
+                            });
+                        prev = id;
+                    });
+                    return {
+                        ...s,
+                        nodes: [...s.nodes, ...newNodes],
+                        edges: [...s.edges, ...newEdges],
+                    };
+                });
+            }
         } finally {
             processing = false;
         }

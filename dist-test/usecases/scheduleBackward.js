@@ -1,48 +1,38 @@
-import type { EdgeEntity, NodeEntity, ProjectSettings } from '../domain/entities';
-import { toWorkingMs, toISODate } from '../shared/time';
-export interface ScheduleResult { nodes: NodeEntity[]; }
-
-export function scheduleBackward(
-    nodes: NodeEntity[],
-    edges: EdgeEntity[],
-    settings: ProjectSettings,
-    terminalNodeId: string
-): ScheduleResult {
+import { toWorkingMs, toISODate } from '../shared/time.js';
+export function scheduleBackward(nodes, edges, settings, terminalNodeId) {
     const nodeMap = new Map(nodes.map(n => [n.id, { ...n }]));
-    const succ = new Map<string, string[]>();
-    const pred = new Map<string, string[]>();
+    const succ = new Map();
+    const pred = new Map();
     const oneDayMs = 24 * 3600 * 1000;
-
     edges.forEach(e => {
         succ.set(e.source, [...(succ.get(e.source) ?? []), e.target]);
         pred.set(e.target, [...(pred.get(e.target) ?? []), e.source]);
     });
-
-    const eff = (n: NodeEntity) =>
-        (settings.useFiftyPctEstimate ? n.effortHours * settings.shrinkRatio : n.effortHours);
-
+    const eff = (n) => (settings.useFiftyPctEstimate ? n.effortHours * settings.shrinkRatio : n.effortHours);
     const terminalEnd = new Date(new Date(settings.dueDate).getTime() - settings.projectBufferDays * 24 * 3600 * 1000);
     const order = reverseTopological(nodes, edges);
-
     const t = nodeMap.get(terminalNodeId);
-    if (!t) throw new Error('terminal node not found');
+    if (!t)
+        throw new Error('terminal node not found');
     if (!t.locked) {
         t.end = toISODate(terminalEnd);
         t.start = toISODate(terminalEnd);
-    } else {
+    }
+    else {
         t.end = t.end ?? toISODate(terminalEnd);
         t.start = t.start ?? toISODate(terminalEnd);
     }
-
     for (const id of order) {
-        if (id === terminalNodeId) continue;
-        const node = nodeMap.get(id)!;
+        if (id === terminalNodeId)
+            continue;
+        const node = nodeMap.get(id);
         if (!node.locked) {
             const successors = succ.get(id) ?? [];
-            let minStartOfSucc: Date | undefined;
+            let minStartOfSucc;
             for (const s of successors) {
-                const sNode = nodeMap.get(s)!;
-                if (!sNode.start) continue;
+                const sNode = nodeMap.get(s);
+                if (!sNode.start)
+                    continue;
                 const d = new Date(sNode.start);
                 minStartOfSucc = !minStartOfSucc || d < minStartOfSucc ? d : minStartOfSucc;
             }
@@ -53,43 +43,37 @@ export function scheduleBackward(
             node.start = toISODate(start);
         }
         if (node.start) {
-            t.start = toISODate(new Date(Math.min(
-                new Date(t.start).getTime(),
-                new Date(node.start).getTime()
-            )));
+            t.start = toISODate(new Date(Math.min(new Date(t.start).getTime(), new Date(node.start).getTime())));
         }
         if (node.end) {
-            t.end = toISODate(new Date(Math.max(
-                new Date(t.end).getTime(),
-                new Date(node.end).getTime()
-            )));
+            t.end = toISODate(new Date(Math.max(new Date(t.end).getTime(), new Date(node.end).getTime())));
         }
     }
-
     return { nodes: Array.from(nodeMap.values()) };
 }
-
-function reverseTopological(nodes: NodeEntity[], edges: EdgeEntity[]): string[] {
-    const succ = new Map<string, string[]>();
-    const indeg = new Map<string, number>();
+function reverseTopological(nodes, edges) {
+    const succ = new Map();
+    const indeg = new Map();
     nodes.forEach(n => indeg.set(n.id, 0));
     edges.forEach(e => {
         succ.set(e.source, [...(succ.get(e.source) ?? []), e.target]);
         indeg.set(e.target, (indeg.get(e.target) ?? 0) + 1);
     });
-    const q: string[] = nodes.filter(n => (succ.get(n.id) ?? []).length === 0).map(n => n.id);
-    const order: string[] = [];
-    const visited = new Set<string>();
+    const q = nodes.filter(n => (succ.get(n.id) ?? []).length === 0).map(n => n.id);
+    const order = [];
+    const visited = new Set();
     while (q.length) {
-        const v = q.pop()!;
-        if (visited.has(v)) continue;
+        const v = q.pop();
+        if (visited.has(v))
+            continue;
         visited.add(v);
         order.push(v);
         for (const e of edges.filter(e => e.target === v)) {
             const u = e.source;
             const remain = (succ.get(u) ?? []).filter(x => x !== v);
             succ.set(u, remain);
-            if (remain.length === 0) q.push(u);
+            if (remain.length === 0)
+                q.push(u);
         }
     }
     return order;

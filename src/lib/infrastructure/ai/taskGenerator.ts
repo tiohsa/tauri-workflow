@@ -2,8 +2,15 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { StructuredOutputParser } from "@langchain/core/output_parsers";
 import { z } from "zod";
+import { appendFileSync } from "node:fs";
+import { join } from "node:path";
 import type { NodeEntity } from "$lib/domain/entities";
 import type { Locale } from "$lib/presentation/stores/i18n";
+
+const LOG_FILE = join(process.cwd(), "task-generator.log");
+function logToFile(message: string) {
+    appendFileSync(LOG_FILE, message + "\n");
+}
 
 const schema = z.object({
     tasks: z.array(
@@ -82,14 +89,14 @@ async function callChain(
         promptText,
         inputBlock,
     });
-    console.log("[LLM REQUEST]", formattedPrompt);
+    logToFile(`[LLM REQUEST] ${formattedPrompt}`);
 
     const rawResponse = await model.invoke(formattedPrompt);
     const responseText =
         typeof rawResponse === "string"
             ? rawResponse
             : ((rawResponse as any).content as string);
-    console.log("[LLM RESPONSE]", responseText);
+    logToFile(`[LLM RESPONSE] ${responseText}`);
 
     const result = (await parser.parse(responseText)) as z.infer<typeof schema>;
 

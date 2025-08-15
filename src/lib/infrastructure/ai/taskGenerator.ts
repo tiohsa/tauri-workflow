@@ -2,14 +2,46 @@ import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { StructuredOutputParser } from "@langchain/core/output_parsers";
 import { z } from "zod";
-import { appendFileSync } from "node:fs";
+import {
+    appendFileSync,
+    existsSync,
+    renameSync,
+    statSync,
+    unlinkSync,
+} from "node:fs";
 import { join } from "node:path";
 import type { NodeEntity } from "$lib/domain/entities";
 import type { Locale } from "$lib/presentation/stores/i18n";
 
 const LOG_FILE = join(process.cwd(), "task-generator.log");
+const MAX_LOG_SIZE = 1024 * 1024; // 1MB
+const MAX_LOG_GENERATIONS = 10;
+
+function rotateLogs() {
+    const oldest = `${LOG_FILE}.${MAX_LOG_GENERATIONS}`;
+    if (existsSync(oldest)) {
+        unlinkSync(oldest);
+    }
+    for (let i = MAX_LOG_GENERATIONS - 1; i >= 0; i--) {
+        const src = i === 0 ? LOG_FILE : `${LOG_FILE}.${i}`;
+        const dest = `${LOG_FILE}.${i + 1}`;
+        if (existsSync(src)) {
+            renameSync(src, dest);
+        }
+    }
+}
+
 function logToFile(message: string) {
-    appendFileSync(LOG_FILE, message + "\n");
+    try {
+        const size = existsSync(LOG_FILE) ? statSync(LOG_FILE).size : 0;
+        const newSize = size + Buffer.byteLength(message + "\n");
+        if (newSize > MAX_LOG_SIZE) {
+            rotateLogs();
+        }
+        appendFileSync(LOG_FILE, message + "\n");
+    } catch (error) {
+        console.error("logToFile error", error);
+    }
 }
 
 const schema = z.object({

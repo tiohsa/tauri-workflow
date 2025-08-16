@@ -1,5 +1,9 @@
 import type { EdgeEntity, NodeEntity } from '../domain/entities';
 
+/**
+ * Arrange nodes based on their dependency levels while avoiding overlaps.
+ * Returns new node positions that roughly minimise edge crossings.
+ */
 export function autoLayout(
     nodes: NodeEntity[],
     edges: EdgeEntity[],
@@ -87,6 +91,7 @@ export function autoLayout(
 
     return positioned;
 
+    // Average the positions of successor nodes to guide ordering within a level
     function barycenter(id: string): number {
         const list = succ.get(id) ?? [];
         if (list.length === 0) return Number.POSITIVE_INFINITY;

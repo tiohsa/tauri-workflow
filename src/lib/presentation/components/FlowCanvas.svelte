@@ -63,13 +63,14 @@
         return () => un?.();
     });
 
-    // 選択ノード（Tabで左に追加）
+    /** 選択ノード（Tabで左に追加） */
     let selectedNodeId = $state<string | null>(null);
-    // 直近に追加したノードの name 入力へフォーカスするための一時フラグ
+    /** 直近に追加したノードの name 入力へフォーカスするための一時フラグ */
     let focusNodeId = $state<string | null>(null);
     const INSERT_H_GAP = 240;
     const DEFAULT_NEW_EFFORT_HOURS = 8;
     const AUTO_CONNECT_ON_INSERT = true;
+    /** Generate short random ids with optional prefix. */
     const genId = (p = "n") => `${p}${crypto.randomUUID().slice(0, 8)}`;
     const { screenToFlowPosition } = useSvelteFlow();
 
@@ -82,11 +83,13 @@
     let contextMenu = $state<ContextMenuState>(null);
     let processing = $state(false);
 
+    /** Arrange nodes to reduce overlap. */
     function runLayout() {
         const positioned = autoLayout(snap.nodes ?? [], snap.edges ?? []);
         projectStore.update((s) => ({ ...s, nodes: positioned }));
     }
 
+    /** Insert a new node to the left of the target node. */
     function addLeftNodeOf(targetId: string) {
         const target = (snap.nodes ?? []).find((n) => n.id === targetId);
         if (!target) return;
@@ -121,10 +124,11 @@
         selectedNodeId = newNode.id;
         focusNodeId = newNode.id;
         runLayout();
-        // レンダ後にフラグを解除（1フレームあれば十分）
+        /* レンダ後にフラグを解除（1フレームあれば十分） */
         setTimeout(() => (focusNodeId = null), 0);
     }
 
+    /** Show context menu at cursor location. */
     function openContextMenu(
         event: MouseEvent,
         type: "pane" | "node" | "edge",
@@ -134,10 +138,12 @@
         contextMenu = { x: event.clientX, y: event.clientY, type, targetId };
     }
 
+    /** Context menu when right-clicking the canvas. */
     function onPaneContextMenu({ event }: { event: MouseEvent }) {
         openContextMenu(event, "pane");
     }
 
+    /** Context menu when right-clicking a node. */
     function onNodeContextMenu({
         event,
         node,
@@ -149,6 +155,7 @@
         openContextMenu(event, "node", node.id);
     }
 
+    /** Context menu when right-clicking an edge. */
     function onEdgeContextMenu({
         event,
         edge,
@@ -159,10 +166,12 @@
         openContextMenu(event, "edge", edge.id);
     }
 
+    /** Hide the context menu. */
     function closeContextMenu() {
         contextMenu = null;
     }
 
+    /** Create a new node at the given position. */
     function addNodeAtPosition(pos: { x: number; y: number }) {
         const newNode: NodeEntity = {
             id: genId("n"),
@@ -176,6 +185,7 @@
         setTimeout(() => (focusNodeId = null), 0);
     }
 
+    /** Add node based on current context menu state. */
     function handleAddNode() {
         if (!contextMenu) return;
         const pos = screenToFlowPosition({
@@ -186,11 +196,13 @@
         closeContextMenu();
     }
 
+    /** Delete selected node from store. */
     function handleDeleteNode() {
         deleteSelectedNode();
         closeContextMenu();
     }
 
+    /** Remove selected edge. */
     function handleDeleteEdge() {
         if (!contextMenu?.targetId) return;
         const id = contextMenu.targetId;
@@ -201,6 +213,7 @@
         closeContextMenu();
     }
 
+    /** Break selected task into subtasks via AI. */
     async function handleDecomposeTask() {
         if (!contextMenu?.targetId) return;
         const targetId = contextMenu.targetId;
@@ -256,6 +269,7 @@
         }
     }
 
+    /** Generate a full task chain leading to the final product. */
     async function handleGenerateFinalTask() {
         if (!contextMenu) return;
         const { x, y } = contextMenu;
@@ -267,7 +281,7 @@
                 : null;
 
             if (finalNode) {
-                // A final node exists. Generate predecessors for it.
+                /* A final node exists. Generate predecessors for it. */
                 const tasks = await generateFinalDeliverableWithAI(
                     finalNode.name,
                     currentLocale,
@@ -279,7 +293,7 @@
                     const newEdges: EdgeEntity[] = [];
                     let prevId = finalNode.id;
 
-                    // The AI returns the whole chain including the final task. We skip the last one.
+                    /* The AI returns the whole chain including the final task. We skip the last one. */
                     const predecessorTasks = tasks.slice(0, -1);
 
                     predecessorTasks
@@ -310,7 +324,7 @@
                     };
                 });
             } else {
-                // No final node. Create a new graph from scratch.
+                /* No final node. Create a new graph from scratch. */
                 const pos = screenToFlowPosition({ x, y });
                 const tasks = await generateFinalDeliverableWithAI(
                     tr.finalProduct,
@@ -352,6 +366,7 @@
         }
     }
 
+    /** Keyboard shortcuts on the canvas. */
     function handleKeyDown(e: KeyboardEvent) {
         if (isTypingTarget(e.target)) return;
         if (e.key === "Tab") {
@@ -380,7 +395,7 @@
             .reduce((sum, n) => sum + (Number(n.effortHours) || 0), 0),
     );
 
-    // 最終成果物ノードの effortHours を合計に同期（差分のみ更新）
+    /** 最終成果物ノードの effortHours を合計に同期（差分のみ更新） */
     $effect(() => {
         const id = terminalId();
         if (!id) return;
@@ -398,7 +413,7 @@
         }
     });
 
-    // Flow ノード/エッジ（最終成果物には computedHours を渡す）
+    /** Flow ノード/エッジ（最終成果物には computedHours を渡す） */
     const nodes = $derived(
         (snap?.nodes ?? []).map(
             (n): FlowNode<Record<string, unknown>> => ({
@@ -420,6 +435,7 @@
         ),
     );
 
+    /** Update the currently selected node. */
     function selectNode(id: string | null) {
         selectedNodeId = id;
     }
@@ -438,6 +454,7 @@
         ),
     );
 
+    /** Add an edge between two nodes. */
     function onConnect(e: Connection) {
         projectStore.update((s) => ({
             ...s,
@@ -452,22 +469,24 @@
         }));
     }
 
+    /** Set selection on double click. */
     function onNodeDoubleClick({ node }: { node: FlowNode }) {
         selectedNodeId = node?.id ?? null;
     }
 
+    /** Remove the currently selected node and related edges. */
     function deleteSelectedNode() {
         if (!selectedNodeId) return;
         const id = selectedNodeId;
 
         projectStore.update((s) => {
-            // ノード削除
+            /* ノード削除 */
             const nextNodes = s.nodes.filter((n) => n.id !== id);
-            // 関連エッジも削除
+            /* 関連エッジも削除 */
             const nextEdges = s.edges.filter(
                 (e) => e.source !== id && e.target !== id,
             );
-            // グループからも外す
+            /* グループからも外す */
             const nextGroups = s.groups.map((g) => ({
                 ...g,
                 nodeIds: g.nodeIds.filter((nid) => nid !== id),
@@ -484,20 +503,20 @@
         selectedNodeId = null;
     }
 
-    // 入力欄での Backspace/Delete は邪魔しない
+    /** Detect if a key event originated from an editable element. */
     function isTypingTarget(el: EventTarget | null) {
         if (!(el instanceof HTMLElement)) return false;
         const tag = el.tagName.toLowerCase();
         return tag === "input" || tag === "textarea" || el.isContentEditable;
     }
 
-    // ノードドラッグ終了時処理
+    /** Merge nodes when one is dragged onto another. */
     function onNodeDragStop(event: any) {
         const draggedNodeId = event.targetNode.id;
         const draggedPos = event.targetNode.position;
         const threshold = 50; // ドロップ判定距離(px)
 
-        // Drop先候補を探索（自分以外）
+        /* Drop先候補を探索（自分以外） */
         const dropTarget = (snap.nodes ?? []).find((n) => {
             if (n.id === draggedNodeId) return false;
             const dx = (n.position?.x ?? 0) - draggedPos.x;
@@ -512,7 +531,7 @@
             if (!draggedNode) return;
 
             projectStore.update((s) => {
-                // Drop先の工数に加算
+                /* Drop先の工数に加算 */
                 const updatedNodes = s.nodes.map((n) =>
                     n.id === dropTarget.id
                         ? {
@@ -523,7 +542,7 @@
                           }
                         : n,
                 );
-                // Drop元削除 + 関連エッジ削除
+                /* Drop元削除 + 関連エッジ削除 */
                 return {
                     ...s,
                     nodes: updatedNodes.filter((n) => n.id !== draggedNodeId),

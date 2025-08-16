@@ -1,5 +1,9 @@
 import type { EdgeEntity, NodeEntity, ProjectSettings } from '$lib/domain/entities';
 
+/**
+ * Find the critical chain by performing a longest-path search on the DAG.
+ * Returns the node id sequence and its total effort in hours.
+ */
 export function computeCriticalChain(
     nodes: NodeEntity[],
     edges: EdgeEntity[],

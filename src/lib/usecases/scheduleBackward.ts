@@ -2,6 +2,11 @@ import type { EdgeEntity, NodeEntity, ProjectSettings } from '../domain/entities
 import { toWorkingMs, toISODate } from '../shared/time';
 export interface ScheduleResult { nodes: NodeEntity[]; }
 
+/**
+ * Compute start and end dates for all nodes by traversing the graph
+ * from the terminal node backwards. Each task is scheduled as late as
+ * possible while respecting dependencies and project settings.
+ */
 export function scheduleBackward(
     nodes: NodeEntity[],
     edges: EdgeEntity[],
@@ -69,6 +74,10 @@ export function scheduleBackward(
     return { nodes: Array.from(nodeMap.values()) };
 }
 
+/**
+ * Produce node identifiers in reverse topological order. Sinks appear first
+ * so that dependencies can be scheduled after their successors.
+ */
 function reverseTopological(nodes: NodeEntity[], edges: EdgeEntity[]): string[] {
     const succ = new Map<string, string[]>();
     const indeg = new Map<string, number>();

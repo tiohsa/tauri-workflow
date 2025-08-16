@@ -17,6 +17,7 @@ const LOG_FILE = join(process.cwd(), "task-generator.log");
 const MAX_LOG_SIZE = 1024 * 1024; // 1MB
 const MAX_LOG_GENERATIONS = 10;
 
+/** Rotate existing logs, keeping only the most recent files. */
 function rotateLogs() {
     const oldest = `${LOG_FILE}.${MAX_LOG_GENERATIONS}`;
     if (existsSync(oldest)) {
@@ -31,6 +32,7 @@ function rotateLogs() {
     }
 }
 
+/** Append a line to the log file, rotating when size exceeds the limit. */
 function logToFile(message: string) {
     try {
         const size = existsSync(LOG_FILE) ? statSync(LOG_FILE).size : 0;
@@ -88,6 +90,7 @@ const model = new ChatGoogleGenerativeAI({
     apiKey: API_KEY,
 });
 
+/** Execute the prompt template and parse structured tasks from the LLM. */
 async function callChain(
     promptText: string,
     input: Record<string, string>,
@@ -139,7 +142,7 @@ async function callChain(
     }));
 }
 
-// タスク分解
+/** Decompose a given task into smaller steps via the AI model. */
 export async function decomposeTaskWithAI(
     goal: string,
     task: string,
@@ -150,7 +153,7 @@ export async function decomposeTaskWithAI(
     return callChain(text, { goal, task, goalDescription }, locale);
 }
 
-// 最終成果物へ至るシーケンス生成
+/** Generate predecessors leading to the final deliverable. */
 export async function generateFinalDeliverableWithAI(
     goal: string,
     locale: Locale,
@@ -160,7 +163,7 @@ export async function generateFinalDeliverableWithAI(
     return callChain(text, { goal, goalDescription }, locale);
 }
 
-// 任意のプロンプトからタスクを生成
+/** Create tasks from an arbitrary natural-language prompt. */
 export async function generateTasksFromPrompt(
     prompt: string,
     locale: Locale

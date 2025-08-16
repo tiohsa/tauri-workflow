@@ -23,6 +23,7 @@
         return () => un?.();
     });
 
+    /** Send the prompt to the AI and store generated tasks. */
     async function send() {
         if (!prompt.trim() || loading) return;
         lastPrompt = prompt;
@@ -35,6 +36,7 @@
         }
     }
 
+    /** Re-run generation using the last prompt. */
     async function regenerate() {
         if (!lastPrompt || loading) return;
         loading = true;
@@ -45,6 +47,7 @@
         }
     }
 
+    /** Add generated tasks to the project. */
     function accept() {
         if (!lastTasks || lastTasks.length === 0) return;
         projectStore.update((s) => {

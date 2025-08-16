@@ -6,7 +6,7 @@
     import { scheduleBackward } from "$lib/usecases/scheduleBackward";
     import { t } from "$lib/presentation/stores/i18n";
 
-    // SvelteFlow から渡される props
+    /** SvelteFlow から渡される props。 */
     let {
         id,
         data,
@@ -49,14 +49,17 @@
         return () => un?.();
     });
 
+    /** Enable edit mode and focus the name input. */
     function startEdit(e: MouseEvent) {
         e.stopPropagation();
         editing = true;
         queueMicrotask(() => nameInputEl?.focus());
     }
 
-    // FlowCanvas から渡される shouldFocus が立っていたら
-    // 編集モードにして name 入力へフォーカス
+    /**
+     * FlowCanvas から渡される shouldFocus が立っていたら
+     * 編集モードにして name 入力へフォーカス
+     */
     $effect(() => {
         if (data?.shouldFocus) {
             editing = true;
@@ -64,6 +67,7 @@
         }
     });
 
+    /** Persist the edited values to the store. */
     function commit() {
         if (!name) return;
         const h = Number(hours);
@@ -91,7 +95,7 @@
         }));
         editing = false;
 
-        // 再計算
+        /** 再計算 */
         const s = get(projectStore);
         if (data.terminalNodeId) {
             const res = scheduleBackward(
@@ -104,6 +108,7 @@
         }
     }
 
+    /** Revert edits and exit edit mode. */
     function cancel() {
         name = data?.name ?? "";
         hours =
@@ -113,6 +118,7 @@
         editing = false;
     }
 
+    /** Handle Enter/Escape keys in the editor. */
     function onKeyDown(e: KeyboardEvent) {
         if (e.key === "Enter") {
             e.preventDefault();
@@ -124,6 +130,7 @@
         }
     }
 
+    /** Toggle the locked state of this node. */
     function toggleLock(e: MouseEvent) {
         e.stopPropagation();
         projectStore.update((s) => ({

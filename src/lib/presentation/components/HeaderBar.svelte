@@ -47,6 +47,7 @@
         return () => un?.();
     });
 
+    /** Recalculate task dates based on current dependencies. */
     function runSchedule() {
         const terminal = snap.nodes?.[0]?.id;
         if (!terminal) return;
@@ -59,11 +60,13 @@
         projectStore.update((s) => ({ ...s, nodes: r.nodes }));
     }
 
+    /** Auto arrange nodes to tidy the canvas. */
     function runLayout() {
         const positioned = autoLayout(snap.nodes ?? [], snap.edges ?? []);
         projectStore.update((s) => ({ ...s, nodes: positioned }));
     }
 
+    /** Compute and display the critical chain. */
     function markCC() {
         const cc = computeCriticalChain(
             snap.nodes ?? [],
@@ -75,36 +78,43 @@
         );
     }
 
+    /** Persist the current project snapshot. */
     async function onSave() {
         await saveProject(persistencePort, snap);
     }
+    /** Load a project snapshot from storage. */
     async function onLoad() {
         const data = await loadProject(persistencePort);
         projectStore.set(data);
     }
 
+    /** Reset to a fresh project. */
     function onNew() {
         resetProject();
     }
 
+    /** Update project due date. */
     function setDueDate(value: string) {
         projectStore.update((s) => ({
             ...s,
             project: { ...s.project, dueDate: value },
         }));
     }
+    /** Update project buffer days. */
     function setPB(value: string) {
         projectStore.update((s) => ({
             ...s,
             project: { ...s.project, projectBufferDays: Number(value) },
         }));
     }
+    /** Toggle 50% estimate usage. */
     function setUse50(checked: boolean) {
         projectStore.update((s) => ({
             ...s,
             project: { ...s.project, useFiftyPctEstimate: !!checked },
         }));
     }
+  /** Update final product description. */
   function setFinalDesc(value: string) {
       projectStore.update((s) => ({
           ...s,
@@ -115,11 +125,13 @@
   let descDialog: HTMLDialogElement;
   let descText = $state("");
 
+  /** Open the description dialog. */
   function openDesc() {
       descText = snap?.project?.finalProductDescription ?? "";
       descDialog.showModal();
   }
 
+  /** Save the description from the dialog. */
   function confirmDesc() {
       setFinalDesc(descText);
       descDialog.close();

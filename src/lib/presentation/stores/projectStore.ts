@@ -2,6 +2,7 @@ import { writable, get } from 'svelte/store';
 import type { ProjectSnapshot } from '$lib/domain/entities';
 import { t } from './i18n';
 
+/** Produce a fresh project with a single terminal node. */
 function createInitialSnapshot(): ProjectSnapshot {
     return {
         project: {
@@ -28,6 +29,7 @@ function createInitialSnapshot(): ProjectSnapshot {
 
 export const projectStore = writable<ProjectSnapshot>(createInitialSnapshot());
 
+/** Reset the store to its initial state. */
 export function resetProject() {
     projectStore.set(createInitialSnapshot());
 }

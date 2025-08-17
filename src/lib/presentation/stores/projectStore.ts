@@ -52,6 +52,8 @@ const initial = loadSnapshot() ?? createInitialSnapshot();
 
 export const projectStore = writable<ProjectSnapshot>(initial);
 
+// 状態が更新されるたびに最新のスナップショットを保存する
+// subscribe は初期化時にも発火するため、起動直後にも保存される
 projectStore.subscribe((snap) => {
   saveSnapshot(snap);
 });

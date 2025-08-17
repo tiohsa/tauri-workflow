@@ -1,4 +1,3 @@
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { StructuredOutputParser } from "@langchain/core/output_parsers";
 import { z } from "zod";
@@ -79,16 +78,58 @@ const PROMPTS: Record<Locale, { rules: string; inputLabel: string; decompose: st
     },
 };
 
-const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY as string | undefined;
-if (!API_KEY) {
-    throw new Error("VITE_GOOGLE_API_KEY is not set. Check your .env files.");
-}
+const provider = (import.meta.env.VITE_LLM_PROVIDER as string | undefined)?.toLowerCase();
 
-const model = new ChatGoogleGenerativeAI({
-    model: "gemini-2.5-flash",
-    temperature: 0,
-    apiKey: API_KEY,
-});
+let model: {
+    invoke(prompt: string): Promise<unknown>;
+};
+
+if (provider === "openai") {
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
+    if (!apiKey) {
+        throw new Error("VITE_OPENAI_API_KEY is not set. Check your .env files.");
+    }
+    model = {
+        async invoke(prompt: string) {
+            const res = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${apiKey}`,
+                },
+                body: JSON.stringify({
+                    model: "gpt-4o-mini",
+                    messages: [{ role: "user", content: prompt }],
+                    temperature: 0,
+                }),
+            });
+            const data = await res.json();
+            return data.choices?.[0]?.message?.content ?? "";
+        },
+    };
+} else {
+    const apiKey = import.meta.env.VITE_GOOGLE_API_KEY as string | undefined;
+    if (!apiKey) {
+        throw new Error("VITE_GOOGLE_API_KEY is not set. Check your .env files.");
+    }
+    model = {
+        async invoke(prompt: string) {
+            const res = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{ role: "user", parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0 },
+                    }),
+                }
+            );
+            const data = await res.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+        },
+    };
+}
 
 /** Execute the prompt template and parse structured tasks from the LLM. */
 async function callChain(

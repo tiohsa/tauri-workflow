@@ -1,50 +1,8 @@
-import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { PromptTemplate } from "@langchain/core/prompts";
 import { StructuredOutputParser } from "@langchain/core/output_parsers";
 import { z } from "zod";
-import {
-    appendFileSync,
-    existsSync,
-    renameSync,
-    statSync,
-    unlinkSync,
-} from "node:fs";
-import { join } from "node:path";
 import type { NodeEntity } from "$lib/domain/entities";
 import type { Locale } from "$lib/presentation/stores/i18n";
-
-const LOG_FILE = join(process.cwd(), "task-generator.log");
-const MAX_LOG_SIZE = 1024 * 1024; // 1MB
-const MAX_LOG_GENERATIONS = 10;
-
-/** Rotate existing logs, keeping only the most recent files. */
-function rotateLogs() {
-    const oldest = `${LOG_FILE}.${MAX_LOG_GENERATIONS}`;
-    if (existsSync(oldest)) {
-        unlinkSync(oldest);
-    }
-    for (let i = MAX_LOG_GENERATIONS - 1; i >= 0; i--) {
-        const src = i === 0 ? LOG_FILE : `${LOG_FILE}.${i}`;
-        const dest = `${LOG_FILE}.${i + 1}`;
-        if (existsSync(src)) {
-            renameSync(src, dest);
-        }
-    }
-}
-
-/** Append a line to the log file, rotating when size exceeds the limit. */
-function logToFile(message: string) {
-    try {
-        const size = existsSync(LOG_FILE) ? statSync(LOG_FILE).size : 0;
-        const newSize = size + Buffer.byteLength(message + "\n");
-        if (newSize > MAX_LOG_SIZE) {
-            rotateLogs();
-        }
-        appendFileSync(LOG_FILE, message + "\n");
-    } catch (error) {
-        console.error("logToFile error", error);
-    }
-}
 
 const schema = z.object({
     tasks: z.array(
@@ -79,16 +37,58 @@ const PROMPTS: Record<Locale, { rules: string; inputLabel: string; decompose: st
     },
 };
 
-const API_KEY = import.meta.env.VITE_GOOGLE_API_KEY as string | undefined;
-if (!API_KEY) {
-    throw new Error("VITE_GOOGLE_API_KEY is not set. Check your .env files.");
-}
+const provider = (import.meta.env.VITE_LLM_PROVIDER as string | undefined)?.toLowerCase();
 
-const model = new ChatGoogleGenerativeAI({
-    model: "gemini-2.5-flash",
-    temperature: 0,
-    apiKey: API_KEY,
-});
+let model: {
+    invoke(prompt: string): Promise<unknown>;
+};
+
+if (provider === "openai") {
+    const apiKey = import.meta.env.VITE_OPENAI_API_KEY as string | undefined;
+    if (!apiKey) {
+        throw new Error("VITE_OPENAI_API_KEY is not set. Check your .env files.");
+    }
+    model = {
+        async invoke(prompt: string) {
+            const res = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${apiKey}`,
+                },
+                body: JSON.stringify({
+                    model: "gpt-4o-mini",
+                    messages: [{ role: "user", content: prompt }],
+                    temperature: 0,
+                }),
+            });
+            const data = await res.json();
+            return data.choices?.[0]?.message?.content ?? "";
+        },
+    };
+} else {
+    const apiKey = import.meta.env.VITE_GOOGLE_API_KEY as string | undefined;
+    if (!apiKey) {
+        throw new Error("VITE_GOOGLE_API_KEY is not set. Check your .env files.");
+    }
+    model = {
+        async invoke(prompt: string) {
+            const res = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        contents: [{ role: "user", parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0 },
+                    }),
+                }
+            );
+            const data = await res.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+        },
+    };
+}
 
 /** Execute the prompt template and parse structured tasks from the LLM. */
 async function callChain(
@@ -124,14 +124,12 @@ async function callChain(
         promptText,
         inputBlock,
     });
-    logToFile(`[LLM REQUEST] ${formattedPrompt}`);
 
     const rawResponse = await model.invoke(formattedPrompt);
     const responseText =
         typeof rawResponse === "string"
             ? rawResponse
             : ((rawResponse as any).content as string);
-    logToFile(`[LLM RESPONSE] ${responseText}`);
 
     const result = (await parser.parse(responseText)) as z.infer<typeof schema>;
 

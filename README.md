@@ -105,17 +105,21 @@ Key components/modules:
 
 ## AI Feature Setup (Optional)
 
-To enable features using Google Generative AI, copy `.env.sample` to `.env` and set your API key:
+To enable AI features, copy `.env.example` to `.env` and set the provider and API keys:
 
 ```bash
-cp .env.sample .env
+cp .env.example .env
 # Open .env and set the following:
-VITE_GOOGLE_API_KEY="your_api_key"
+VITE_LLM_PROVIDER=gemini   # or "openai"
+VITE_GOOGLE_API_KEY="your_google_api_key"
+VITE_OPENAI_API_KEY="your_openai_api_key"
 ```
 
-* Environment variable: `VITE_GOOGLE_API_KEY`
+* `VITE_LLM_PROVIDER`: `gemini` or `openai`
+* `VITE_GOOGLE_API_KEY`: required when using Gemini
+* `VITE_OPENAI_API_KEY`: required when using OpenAI
 * Implementation: `src/lib/infrastructure/ai/taskGenerator.ts`
-* To disable: If you do not set the key in `.env`, the app will throw an error at startup when attempting to use AI features. To avoid this, either do not use the corresponding UI (e.g., AI buttons) or guard the calls in code.
+* To disable: leave the corresponding API key unset and avoid invoking AI features in the UI.
 
 ---
 

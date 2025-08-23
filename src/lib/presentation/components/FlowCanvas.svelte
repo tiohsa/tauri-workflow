@@ -82,6 +82,7 @@
     } | null;
     let contextMenu = $state<ContextMenuState>(null);
     let processing = $state(false);
+    let canvasEl: HTMLDivElement | null = null;
 
     /** Arrange nodes to reduce overlap. */
     function runLayout() {
@@ -213,11 +214,16 @@
         closeContextMenu();
     }
 
-    /** Break selected task into subtasks via AI. */
+    /** Break selected task into subtasks via AI from context menu. */
     async function handleDecomposeTask() {
         if (!contextMenu?.targetId) return;
         const targetId = contextMenu.targetId;
         closeContextMenu();
+        await decomposeTask(targetId);
+    }
+
+    /** Break the specified task into subtasks via AI. */
+    async function decomposeTask(targetId: string) {
         processing = true;
         try {
             const target = (snap.nodes ?? []).find((n) => n.id === targetId);
@@ -374,6 +380,20 @@
             if (selectedNodeId) addLeftNodeOf(selectedNodeId);
         }
     }
+
+    $effect(() => {
+        if (!canvasEl) return;
+        const handleAdd = (e: Event) =>
+            addLeftNodeOf((e as CustomEvent<{ id: string }>).detail.id);
+        const handleAi = (e: Event) =>
+            decomposeTask((e as CustomEvent<{ id: string }>).detail.id);
+        canvasEl.addEventListener("addnode", handleAdd as EventListener);
+        canvasEl.addEventListener("aitask", handleAi as EventListener);
+        return () => {
+            canvasEl?.removeEventListener("addnode", handleAdd as EventListener);
+            canvasEl?.removeEventListener("aitask", handleAi as EventListener);
+        };
+    });
 
     const FINAL_NAMES = [
         dictionary.ja.finalProduct,
@@ -563,7 +583,7 @@
 
 <svelte:window on:keydown={handleKeyDown} />
 
-<div class="canvas-root" on:click={closeContextMenu}>
+<div class="canvas-root" bind:this={canvasEl} on:click={closeContextMenu}>
     <SvelteFlow
         {nodes}
         {edges}

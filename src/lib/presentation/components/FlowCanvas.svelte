@@ -75,7 +75,7 @@
     const AUTO_CONNECT_ON_INSERT = true;
     /** Generate short random ids with optional prefix. */
     const genId = (p = "n") => `${p}${crypto.randomUUID().slice(0, 8)}`;
-    const { screenToFlowPosition, setCenter, getNodesBounds } = useSvelteFlow();
+    const { screenToFlowPosition, setCenter, getNodesBounds, getZoom } = useSvelteFlow();
 
     type ContextMenuState = {
         x: number;
@@ -613,7 +613,7 @@
             const b = getNodesBounds([best.id]);
             const cx2 = b.x + b.width / 2;
             const cy2 = b.y + b.height / 2;
-            void setCenter(cx2, cy2, { duration: NAV_CENTER_DURATION });
+            void setCenter(cx2, cy2, { zoom: getZoom(), duration: NAV_CENTER_DURATION });
         } catch {
             /* no-op */
         }
@@ -669,7 +669,7 @@
             const b = getNodesBounds([best.id]);
             const cx2 = b.x + b.width / 2;
             const cy2 = b.y + b.height / 2;
-            void setCenter(cx2, cy2, { duration: NAV_CENTER_DURATION });
+            void setCenter(cx2, cy2, { zoom: getZoom(), duration: NAV_CENTER_DURATION });
         } catch {
             /* no-op */
         }

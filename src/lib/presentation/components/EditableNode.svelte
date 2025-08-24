@@ -5,7 +5,6 @@
     import { get } from "svelte/store";
     import { scheduleBackward } from "$lib/usecases/scheduleBackward";
     import { t } from "$lib/presentation/stores/i18n";
-    import { createEventDispatcher } from "svelte";
 
     /** SvelteFlow から渡される props。 */
     let {
@@ -19,6 +18,8 @@
             computedHours?: number;
             terminalNodeId?: string;
             shouldFocus?: boolean;
+            onAddNode: () => void;
+            onDecomposeTask: () => void;
         };
         selected: boolean;
     } = $props();
@@ -31,11 +32,6 @@
     let tr = $state(get(t));
 
     let nameInputEl: HTMLInputElement | null = null;
-
-    const dispatch = createEventDispatcher<{
-        addnode: { id: string };
-        aitask: { id: string };
-    }>();
 
     $effect(() => {
         name = data?.name ?? "";
@@ -64,12 +60,12 @@
 
     function onAddNodeClick(e: MouseEvent) {
         e.stopPropagation();
-        dispatch("addnode", { id });
+        data.onAddNode();
     }
 
-    function onAITaskClick(e: MouseEvent) {
+    function onDecomposeTaskClick(e: MouseEvent) {
         e.stopPropagation();
-        dispatch("aitask", { id });
+        data.onDecomposeTask();
     }
 
     /**
@@ -254,7 +250,7 @@
             <button
                 class="tool-btn"
                 title={tr.decomposeTask}
-                onclick={onAITaskClick}
+                onclick={onDecomposeTaskClick}
             >🤖</button>
         </div>
     {/if}

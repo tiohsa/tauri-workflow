@@ -381,19 +381,6 @@
         }
     }
 
-    $effect(() => {
-        if (!canvasEl) return;
-        const handleAdd = (e: Event) =>
-            addLeftNodeOf((e as CustomEvent<{ id: string }>).detail.id);
-        const handleAi = (e: Event) =>
-            decomposeTask((e as CustomEvent<{ id: string }>).detail.id);
-        canvasEl.addEventListener("addnode", handleAdd as EventListener);
-        canvasEl.addEventListener("aitask", handleAi as EventListener);
-        return () => {
-            canvasEl?.removeEventListener("addnode", handleAdd as EventListener);
-            canvasEl?.removeEventListener("aitask", handleAi as EventListener);
-        };
-    });
 
     const FINAL_NAMES = [
         dictionary.ja.finalProduct,
@@ -446,6 +433,8 @@
                         n.id === terminalId() ? totalOthers : n.effortHours,
                     terminalNodeId: terminalId(),
                     shouldFocus: n.id === focusNodeId,
+                    onAddNode: () => addLeftNodeOf(n.id),
+                    onDecomposeTask: () => decomposeTask(n.id),
                 },
                 type: "editable",
                 sourcePosition: Position.Right,

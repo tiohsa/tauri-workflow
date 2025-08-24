@@ -278,6 +278,9 @@
     .node.selected {
         outline: 2px solid #4f46e5;
     }
+    .node:hover {
+        z-index: 100;
+    }
     .label .title {
         font-weight: 600;
         white-space: normal; /* 折り返しを許可 */
@@ -347,6 +350,7 @@
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.2s ease;
+        z-index: 10;
     }
     .node:hover .hover-tools {
         opacity: 1;

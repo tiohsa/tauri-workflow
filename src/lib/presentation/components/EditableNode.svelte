@@ -242,16 +242,14 @@
             <div></div>
         </div>
         <div class="hover-tools">
-            <button
-                class="tool-btn"
-                title={tr.addNode}
-                onclick={onAddNodeClick}
-            >⊕</button>
+            <button class="tool-btn" title={tr.addNode} onclick={onAddNodeClick}
+                >➕</button
+            >
             <button
                 class="tool-btn"
                 title={tr.decomposeTask}
-                onclick={onDecomposeTaskClick}
-            >🤖</button>
+                onclick={onDecomposeTaskClick}>🤖</button
+            >
         </div>
     {/if}
 

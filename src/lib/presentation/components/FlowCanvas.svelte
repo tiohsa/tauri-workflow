@@ -68,11 +68,12 @@
     /** 直近に追加したノードの name 入力へフォーカスするための一時フラグ */
     let focusNodeId = $state<string | null>(null);
     const INSERT_H_GAP = 240;
+    const INITIAL_CENTER_ZOOM = 1.0; // 初期センタリング時のズーム
     const DEFAULT_NEW_EFFORT_HOURS = 8;
     const AUTO_CONNECT_ON_INSERT = true;
     /** Generate short random ids with optional prefix. */
     const genId = (p = "n") => `${p}${crypto.randomUUID().slice(0, 8)}`;
-    const { screenToFlowPosition } = useSvelteFlow();
+    const { screenToFlowPosition, setCenter, getNodesBounds } = useSvelteFlow();
 
     type ContextMenuState = {
         x: number;
@@ -83,6 +84,8 @@
     let contextMenu = $state<ContextMenuState>(null);
     let processing = $state(false);
     let canvasEl: HTMLDivElement | null = null;
+    /** 起動時のセンタリング実行フラグ */
+    let didInitialCenter = $state(false);
 
     /** Arrange nodes to reduce overlap. */
     function runLayout() {
@@ -396,6 +399,37 @@
         return byName?.id ?? all[0].id;
     });
 
+    /** 起動時に最終成果物ノードを画面中心へ */
+    $effect(() => {
+        if (didInitialCenter) return;
+        const id = terminalId();
+        if (!id) return;
+        // レンダ計測が完了したタイミングで中心へ移動
+        setTimeout(() => {
+            try {
+                const b = getNodesBounds([id]);
+                const cx = b.x + b.width / 2;
+                const cy = b.y + b.height / 2;
+                // 既存ズームは維持（durationで軽くアニメーション）
+                void setCenter(cx, cy, { zoom: INITIAL_CENTER_ZOOM, duration: 200 });
+                didInitialCenter = true;
+            } catch {
+                // 取得に失敗した場合は次フレームでもう一度試行
+                setTimeout(() => {
+                    try {
+                        const b2 = getNodesBounds([id]);
+                        const cx2 = b2.x + b2.width / 2;
+                        const cy2 = b2.y + b2.height / 2;
+                        void setCenter(cx2, cy2, { zoom: INITIAL_CENTER_ZOOM, duration: 200 });
+                        didInitialCenter = true;
+                    } catch {
+                        /* no-op */
+                    }
+                }, 16);
+            }
+        }, 0);
+    });
+
     const totalOthers = $derived(
         (snap?.nodes ?? [])
             .filter((n) => n.id !== terminalId())
@@ -582,7 +616,6 @@
         onpanecontextmenu={onPaneContextMenu}
         onnodecontextmenu={onNodeContextMenu}
         onedgecontextmenu={onEdgeContextMenu}
-        fitView
         nodeTypes={{ editable: EditableNode }}
     >
         <Background />

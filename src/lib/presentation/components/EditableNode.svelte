@@ -18,6 +18,8 @@
             computedHours?: number;
             terminalNodeId?: string;
             shouldFocus?: boolean;
+            onAddNode: () => void;
+            onDecomposeTask: () => void;
         };
         selected: boolean;
     } = $props();
@@ -54,6 +56,16 @@
         e.stopPropagation();
         editing = true;
         queueMicrotask(() => nameInputEl?.focus());
+    }
+
+    function onAddNodeClick(e: MouseEvent) {
+        e.stopPropagation();
+        data.onAddNode();
+    }
+
+    function onDecomposeTaskClick(e: MouseEvent) {
+        e.stopPropagation();
+        data.onDecomposeTask();
     }
 
     /**
@@ -229,6 +241,18 @@
             </div>
             <div></div>
         </div>
+        <div class="hover-tools">
+            <button
+                class="tool-btn"
+                title={tr.addNode}
+                onclick={onAddNodeClick}
+            >⊕</button>
+            <button
+                class="tool-btn"
+                title={tr.decomposeTask}
+                onclick={onDecomposeTaskClick}
+            >🤖</button>
+        </div>
     {/if}
 
     <Handle type="target" position={Position.Left} />
@@ -245,9 +269,13 @@
         background: white;
         box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
         width: 180px; /* 固定幅 */
+        position: relative;
     }
     .node.selected {
         outline: 2px solid #4f46e5;
+    }
+    .node:hover {
+        z-index: 100;
     }
     .label .title {
         font-weight: 600;
@@ -308,5 +336,29 @@
         cursor: pointer;
         font-size: 12px;
         padding: 0 4px;
+    }
+    .hover-tools {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        display: flex;
+        gap: 4px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+        z-index: 10;
+    }
+    .node:hover .hover-tools {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .tool-btn {
+        width: 20px;
+        height: 20px;
+        border: 1px solid #9ca3af;
+        border-radius: 9999px;
+        background: #f9fafb;
+        font-size: 12px;
+        cursor: pointer;
     }
 </style>

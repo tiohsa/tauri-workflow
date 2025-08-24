@@ -69,6 +69,8 @@
     let focusNodeId = $state<string | null>(null);
     const INSERT_H_GAP = 240;
     const INITIAL_CENTER_ZOOM = 1.0; // 初期センタリング時のズーム
+    const NAV_CENTER_DURATION = 120; // 矢印ナビ時のセンタリング時間(ms)
+    const EPS = 1e-6;
     const DEFAULT_NEW_EFFORT_HOURS = 8;
     const AUTO_CONNECT_ON_INSERT = true;
     /** Generate short random ids with optional prefix. */
@@ -381,6 +383,25 @@
         if (e.key === "Tab") {
             e.preventDefault();
             if (selectedNodeId) addLeftNodeOf(selectedNodeId);
+        } else if (e.key === "ArrowRight") {
+            e.preventDefault();
+            moveSelection("right");
+        } else if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            moveSelection("left");
+        } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            moveSelectionVertical("up");
+        } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            moveSelectionVertical("down");
+        } else if (e.key === "F2") {
+            e.preventDefault();
+            if (selectedNodeId) {
+                // EditableNode 側の shouldFocus をトリガーして編集開始
+                focusNodeId = selectedNodeId;
+                setTimeout(() => (focusNodeId = null), 0);
+            }
         }
     }
 
@@ -544,6 +565,114 @@
         });
 
         selectedNodeId = null;
+    }
+
+    /** 選択移動: 左右方向に最も近いノードへ */
+    function moveSelection(dir: "left" | "right") {
+        const allNodes = snap.nodes ?? [];
+        const allEdges = snap.edges ?? [];
+        let currentId = selectedNodeId ?? terminalId() ?? allNodes[0]?.id ?? null;
+        if (!currentId) return;
+
+        const cur = allNodes.find((n) => n.id === currentId);
+        if (!cur) return;
+        const cx = cur.position?.x ?? 0;
+        const cy = cur.position?.y ?? 0;
+
+        // 後続(右): source = current -> targets
+        // 先行(左): target = current <- sources
+        const nextIds = dir === "right"
+            ? allEdges.filter((e) => e.source === currentId).map((e) => e.target)
+            : allEdges.filter((e) => e.target === currentId).map((e) => e.source);
+
+        const candidates = nextIds
+            .map((id) => allNodes.find((n) => n.id === id))
+            .filter((n): n is NonNullable<typeof n> => Boolean(n));
+        if (candidates.length === 0) return;
+
+        // 方向性を優先しつつ最短距離のノードを選ぶ
+        const directional = candidates.filter((n) =>
+            dir === "right"
+                ? (n.position?.x ?? 0) >= cx
+                : (n.position?.x ?? 0) <= cx,
+        );
+        const pool = directional.length ? directional : candidates;
+        const best = pool.reduce((acc, n) => {
+            const nx = n.position?.x ?? 0;
+            const ny = n.position?.y ?? 0;
+            const dx = Math.abs(nx - cx) + Math.abs(ny - cy) * 0.25; // 横優先で軽く縦距離も考慮
+            if (!acc || dx < acc.score) return { node: n, score: dx };
+            return acc;
+        }, null as null | { node: typeof candidates[number]; score: number })?.node;
+
+        if (!best) return;
+        selectedNodeId = best.id;
+
+        // 画面中央へ軽くスムーズスクロール（ズームは維持）
+        try {
+            const b = getNodesBounds([best.id]);
+            const cx2 = b.x + b.width / 2;
+            const cy2 = b.y + b.height / 2;
+            void setCenter(cx2, cy2, { duration: NAV_CENTER_DURATION });
+        } catch {
+            /* no-op */
+        }
+    }
+
+    /** 選択移動: 上下方向に同じ階層（同x列）へ */
+    function moveSelectionVertical(dir: "up" | "down") {
+        const allNodes = (snap.nodes ?? []).filter(Boolean);
+        if (allNodes.length === 0) return;
+        const curId = selectedNodeId ?? terminalId() ?? allNodes[0]?.id ?? null;
+        if (!curId) return;
+
+        const cur = allNodes.find((n) => n.id === curId);
+        if (!cur) return;
+        const cx = cur.position?.x ?? 0;
+        const cy = cur.position?.y ?? 0;
+
+        // 同じ列に最も近い x を持つノード群を列候補とする
+        const others = allNodes.filter((n) => n.id !== curId);
+        if (others.length === 0) return;
+        let minDx = Infinity;
+        for (const n of others) {
+            const dx = Math.abs((n.position?.x ?? 0) - cx);
+            if (dx < minDx) minDx = dx;
+        }
+        const column = others.filter((n) =>
+            Math.abs((n.position?.x ?? 0) - cx) <= minDx + EPS,
+        );
+
+        const directional = column.filter((n) =>
+            dir === "up"
+                ? (n.position?.y ?? 0) < cy - EPS
+                : (n.position?.y ?? 0) > cy + EPS,
+        );
+        if (directional.length === 0) return;
+
+        // 縦方向に最短、同率なら x のズレが小さいものを優先
+        const best = directional.reduce((acc, n) => {
+            const nx = n.position?.x ?? 0;
+            const ny = n.position?.y ?? 0;
+            const dy = Math.abs(ny - cy);
+            const dx = Math.abs(nx - cx);
+            if (!acc) return { node: n, dy, dx };
+            if (dy < acc.dy - EPS) return { node: n, dy, dx };
+            if (Math.abs(dy - acc.dy) <= EPS && dx < acc.dx - EPS)
+                return { node: n, dy, dx };
+            return acc;
+        }, null as null | { node: typeof directional[number]; dy: number; dx: number })?.node;
+
+        if (!best) return;
+        selectedNodeId = best.id;
+        try {
+            const b = getNodesBounds([best.id]);
+            const cx2 = b.x + b.width / 2;
+            const cy2 = b.y + b.height / 2;
+            void setCenter(cx2, cy2, { duration: NAV_CENTER_DURATION });
+        } catch {
+            /* no-op */
+        }
     }
 
     /** Detect if a key event originated from an editable element. */

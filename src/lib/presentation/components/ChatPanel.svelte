@@ -3,6 +3,7 @@
     import { projectStore } from "$lib/presentation/stores/projectStore";
     import { t, locale, type Locale } from "$lib/presentation/stores/i18n";
     import { get } from "svelte/store";
+    import { uiProcessing } from "$lib/presentation/stores/ui";
     import type { NodeEntity, EdgeEntity } from "$lib/domain/entities";
 
     const INSERT_H_GAP = 240;
@@ -29,10 +30,12 @@
         lastPrompt = prompt;
         prompt = "";
         loading = true;
+        uiProcessing.set(true);
         try {
             lastTasks = await generateTasksFromPrompt(lastPrompt, currentLocale);
         } finally {
             loading = false;
+            uiProcessing.set(false);
         }
     }
 
@@ -40,10 +43,12 @@
     async function regenerate() {
         if (!lastPrompt || loading) return;
         loading = true;
+        uiProcessing.set(true);
         try {
             lastTasks = await generateTasksFromPrompt(lastPrompt, currentLocale);
         } finally {
             loading = false;
+            uiProcessing.set(false);
         }
     }
 

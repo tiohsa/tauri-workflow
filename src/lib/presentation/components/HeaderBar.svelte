@@ -151,7 +151,8 @@
         <dialog bind:this={descDialog} class="rounded p-4">
             <div class="flex flex-col gap-2">
                 <textarea
-                    class="border rounded p-1 w-80 h-40"
+                    class="border rounded p-1"
+                    style="width: 50vw; height: 50vh;"
                     bind:value={descText}
                 ></textarea>
                 <div class="ml-auto flex gap-2">

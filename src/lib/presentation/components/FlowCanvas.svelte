@@ -89,6 +89,11 @@
     /** 起動時のセンタリング実行フラグ */
     let didInitialCenter = $state(false);
 
+    /** リスト入力ダイアログ */
+    let listDialog: HTMLDialogElement | null = null;
+    let listText = $state("");
+    let listInsertPos: { x: number; y: number } | null = null;
+
     /** Arrange nodes to reduce overlap. */
     function runLayout() {
         const positioned = autoLayout(snap.nodes ?? [], snap.edges ?? []);
@@ -200,6 +205,78 @@
         });
         addNodeAtPosition(pos);
         closeContextMenu();
+    }
+
+    /** Open list-to-nodes dialog at cursor position. */
+    function handleOpenListDialog() {
+        if (!contextMenu) return;
+        listInsertPos = screenToFlowPosition({ x: contextMenu.x, y: contextMenu.y });
+        closeContextMenu();
+        listText = "";
+        listDialog?.showModal();
+    }
+
+    /** Create nodes from each non-empty line and connect last to final product. */
+    function confirmCreateFromList() {
+        const lines = listText
+            .split(/\r?\n/)
+            .map((s) => s.trim())
+            .filter((s) => s.length > 0);
+        if (lines.length === 0) {
+            listDialog?.close();
+            return;
+        }
+        const finalId = terminalId();
+        if (finalId) {
+            // Place nodes to the left of the final deliverable and chain them, but DO NOT connect last to final
+            const finalNode = (snap.nodes ?? []).find((n) => n.id === finalId);
+            const base = finalNode?.position ?? { x: 0, y: 0 };
+            projectStore.update((s) => {
+                const newNodes: NodeEntity[] = [];
+                const newEdges: EdgeEntity[] = [];
+                let prevId: string | null = null; // last node should NOT connect to final
+                lines
+                    .slice()
+                    .reverse()
+                    .forEach((name, idx) => {
+                        const id = genId("n");
+                        newNodes.push({
+                            id,
+                            name,
+                            effortHours: DEFAULT_NEW_EFFORT_HOURS,
+                            position: {
+                                x: (base?.x ?? 0) - INSERT_H_GAP * (idx + 1),
+                                y: base?.y ?? 0,
+                            },
+                        });
+                        if (prevId) {
+                            newEdges.push({ id: genId("e"), source: id, target: prevId });
+                        }
+                        prevId = id;
+                    });
+                return {
+                    ...s,
+                    nodes: [...s.nodes, ...newNodes],
+                    edges: [...s.edges, ...newEdges],
+                };
+            });
+        } else {
+            // Fallback: place vertically at the clicked position without connections
+            const base = listInsertPos ?? { x: 0, y: 0 };
+            const vGap = 100;
+            projectStore.update((s) => {
+                const newNodes = lines.map((name, idx) => ({
+                    id: genId("n"),
+                    name,
+                    effortHours: DEFAULT_NEW_EFFORT_HOURS,
+                    position: { x: base.x, y: base.y + idx * vGap },
+                } satisfies NodeEntity));
+                return { ...s, nodes: [...s.nodes, ...newNodes] };
+            });
+        }
+        listDialog?.close();
+        listText = "";
+        listInsertPos = null;
     }
 
     /** Delete selected node from store. */
@@ -733,9 +810,9 @@
     }
 </script>
 
-<svelte:window on:keydown={handleKeyDown} />
+<svelte:window onkeydown={handleKeyDown} />
 
-<div class="canvas-root" bind:this={canvasEl} on:click={closeContextMenu}>
+<div class="canvas-root" bind:this={canvasEl} onclick={closeContextMenu}>
     <SvelteFlow
         {nodes}
         {edges}
@@ -755,26 +832,43 @@
             class="context-menu"
             style:left={`${contextMenu.x}px`}
             style:top={`${contextMenu.y}px`}
-            on:click|stopPropagation
+            onclick={(e) => e.stopPropagation()}
         >
             <ul>
                 {#if contextMenu.type === "pane"}
-                    <li on:click={handleAddNode}>{tr.addNode}</li>
-                    <li on:click={handleGenerateFinalTask}>
+                    <li onclick={handleAddNode}>{tr.addNode}</li>
+                    <li onclick={handleOpenListDialog}>{tr.createFromList}</li>
+                    <li onclick={handleGenerateFinalTask}>
                         {tr.generateFinalTask}
                     </li>
                 {:else if contextMenu.type === "node"}
-                    <li on:click={handleAddNode}>{tr.addNode}</li>
-                    <li on:click={handleDeleteNode}>{tr.deleteNode}</li>
-                    <li on:click={handleDecomposeTask}>{tr.decomposeTask}</li>
+                    <li onclick={handleAddNode}>{tr.addNode}</li>
+                    <li onclick={handleDeleteNode}>{tr.deleteNode}</li>
+                    <li onclick={handleDecomposeTask}>{tr.decomposeTask}</li>
+                    <li onclick={handleOpenListDialog}>{tr.createFromList}</li>
                 {:else if contextMenu.type === "edge"}
-                    <li on:click={handleDeleteEdge}>
+                    <li onclick={handleDeleteEdge}>
                         {tr.deleteConnector}
                     </li>
                 {/if}
             </ul>
         </div>
     {/if}
+    <dialog bind:this={listDialog} class="rounded p-4">
+        <div class="flex flex-col gap-2">
+            <label>{tr.createFromList}</label>
+            <textarea
+                class="border rounded p-1"
+                style="width: 50vw; height: 40vh;"
+                placeholder={tr.linesPlaceholder}
+                bind:value={listText}
+            ></textarea>
+            <div class="ml-auto flex gap-2">
+                <button class="rounded bg-gray-200 px-2 py-1 hover:bg-gray-300" onclick={() => listDialog?.close()}>{tr.cancel}</button>
+                <button class="rounded bg-gray-200 px-2 py-1 hover:bg-gray-300" onclick={confirmCreateFromList}>{tr.ok}</button>
+            </div>
+        </div>
+    </dialog>
     {#if processing}
         <div class="processing-overlay">{tr.processing}</div>
     {/if}

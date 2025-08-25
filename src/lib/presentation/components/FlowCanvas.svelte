@@ -84,7 +84,12 @@
         targetId?: string;
     } | null;
     let contextMenu = $state<ContextMenuState>(null);
-    let processing = $state(false);
+    import { uiProcessing } from "$lib/presentation/stores/ui";
+    let globalProcessing = $state(false);
+    $effect(() => {
+        const un = uiProcessing.subscribe((v) => (globalProcessing = v));
+        return () => un?.();
+    });
     let canvasEl: HTMLDivElement | null = null;
     /** 起動時のセンタリング実行フラグ */
     let didInitialCenter = $state(false);
@@ -306,7 +311,7 @@
 
     /** Break the specified task into subtasks via AI. */
     async function decomposeTask(targetId: string) {
-        processing = true;
+        uiProcessing.set(true);
         try {
             const target = (snap.nodes ?? []).find((n) => n.id === targetId);
             if (!target) return;
@@ -353,7 +358,7 @@
                 };
             });
         } finally {
-            processing = false;
+            uiProcessing.set(false);
         }
     }
 
@@ -362,7 +367,7 @@
         if (!contextMenu) return;
         const { x, y } = contextMenu;
         closeContextMenu();
-        processing = true;
+        uiProcessing.set(true);
         try {
             const finalNode = terminalId()
                 ? (snap.nodes ?? []).find((n) => n.id === terminalId())
@@ -450,7 +455,7 @@
                 });
             }
         } finally {
-            processing = false;
+            uiProcessing.set(false);
         }
     }
 
@@ -869,9 +874,6 @@
             </div>
         </div>
     </dialog>
-    {#if processing}
-        <div class="processing-overlay">{tr.processing}</div>
-    {/if}
 </div>
 
 <style>
@@ -879,18 +881,6 @@
         width: 100%;
         height: 90%;
         position: relative;
-    }
-    .processing-overlay {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: rgba(255, 255, 255, 0.7);
-        z-index: 2000;
     }
     .context-menu {
         position: absolute;

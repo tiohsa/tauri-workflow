@@ -7,7 +7,7 @@ import type { EdgeEntity, NodeEntity } from '../domain/entities';
 export function autoLayout(
     nodes: NodeEntity[],
     edges: EdgeEntity[],
-    hGap = 280,
+    hGap = 240,
     vGap = 110,
 ) {
     // Estimated node size used for collision checks (should be >= actual sizes)

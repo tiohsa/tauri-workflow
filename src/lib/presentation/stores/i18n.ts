@@ -31,7 +31,11 @@ export const dictionary: Record<Locale, Record<string, string>> = {
     sendPrompt: '送信',
     accept: '受け入れる',
     regenerate: '再生成',
-    promptPlaceholder: 'プロンプトを入力...'
+    promptPlaceholder: 'プロンプトを入力...',
+    createFromList: 'リストからノード作成',
+    linesPlaceholder: '1行につき1ノードとして貼り付け\n例)\n要件定義\nUI設計\n実装\nテスト',
+    openChat: 'チャットを開く',
+    closeChat: 'チャットを閉じる'
   },
   en: {
     align: 'Align',
@@ -60,7 +64,11 @@ export const dictionary: Record<Locale, Record<string, string>> = {
     sendPrompt: 'Send',
     accept: 'Accept',
     regenerate: 'Regenerate',
-    promptPlaceholder: 'Enter prompt...'
+    promptPlaceholder: 'Enter prompt...',
+    createFromList: 'Create nodes from list',
+    linesPlaceholder: 'Paste lines, one node per line\nEx.)\nRequirements\nUI Design\nImplementation\nTesting',
+    openChat: 'Open chat',
+    closeChat: 'Close chat'
   }
 };
 

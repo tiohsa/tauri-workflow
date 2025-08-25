@@ -8,6 +8,7 @@
     import { get } from "svelte/store";
     import type { ProjectSnapshot } from "$lib/domain/entities";
     import { t, locale, type Locale } from "$lib/presentation/stores/i18n";
+    import { chatOpen } from "$lib/presentation/stores/ui";
 
     const persistencePort = usePersistencePort();
 
@@ -31,6 +32,7 @@
     let snap = $state<ProjectSnapshot>(get(projectStore) ?? fallback);
     let tr = $state(get(t));
     let currentLocale = $state<Locale>(get(locale));
+    let isChatOpen = $state<boolean>(true);
 
     let unsubscribe: () => void;
     $effect(() => {
@@ -44,6 +46,10 @@
     });
     $effect(() => {
         const un = locale.subscribe((v) => (currentLocale = v));
+        return () => un?.();
+    });
+    $effect(() => {
+        const un = chatOpen.subscribe((v) => (isChatOpen = v));
         return () => un?.();
     });
 
@@ -147,6 +153,9 @@
     <button class={btnClass} onclick={onLoad}>{tr.load}</button>
 
     <div class="ml-auto flex items-center gap-2">
+        <button class={btnClass} onclick={() => chatOpen.set(!isChatOpen)}>
+            {isChatOpen ? tr.closeChat : tr.openChat}
+        </button>
         <button class={btnClass} onclick={openDesc}>{tr.finalProductDescription}</button>
         <dialog bind:this={descDialog} class="rounded p-4">
             <div class="flex flex-col gap-2">

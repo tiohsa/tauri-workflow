@@ -495,8 +495,12 @@
     const terminalId = $derived(() => {
         const all = snap?.nodes ?? [];
         if (all.length === 0) return null;
-        const outSet = new Set((snap?.edges ?? []).map((e) => e.source)); // 出次数>0のノードID
-        const sinks = all.filter((n) => !outSet.has(n.id)); // 出次数0=終端候補
+        // 明示的指定を最優先
+        const explicit = snap?.project?.finalNodeId;
+        if (explicit && all.some((n) => n.id === explicit)) return explicit;
+        // 既存ロジック（後方互換）
+        const outSet = new Set((snap?.edges ?? []).map((e) => e.source));
+        const sinks = all.filter((n) => !outSet.has(n.id));
         if (sinks.length === 1) return sinks[0].id;
         const byName = all.find((n) => FINAL_NAMES.includes(n.name));
         return byName?.id ?? all[0].id;

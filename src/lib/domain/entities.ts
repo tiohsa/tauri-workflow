@@ -8,6 +8,7 @@ export interface ProjectSettings {
     shrinkRatio: number; // 例: 0.6
     hoursPerDay: number; // 例: 8
     finalProductDescription?: string;
+    finalNodeId?: ID; // 明示的な最終成果物ノードID
 }
 
 export interface NodeEntity {

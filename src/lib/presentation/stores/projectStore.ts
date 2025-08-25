@@ -34,6 +34,7 @@ function createInitialSnapshot(): ProjectSnapshot {
       shrinkRatio: 0.6,
       hoursPerDay: 8,
       finalProductDescription: '',
+      finalNodeId: 'n1',
     },
     nodes: [
       {

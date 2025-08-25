@@ -1,16 +1,28 @@
 name: Tauri Build
 
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
+    inputs:
+      os:
+        description: "ビルド対象OS"
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - ubuntu
+          - macos
+          - windows
 
 jobs:
   build:
     name: Build (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    if: |
+      inputs.os == 'all' ||
+      (inputs.os == 'ubuntu' && matrix.os == 'ubuntu-latest') ||
+      (inputs.os == 'macos' && matrix.os == 'macos-latest') ||
+      (inputs.os == 'windows' && matrix.os == 'windows-latest')
     strategy:
       fail-fast: false
       matrix:

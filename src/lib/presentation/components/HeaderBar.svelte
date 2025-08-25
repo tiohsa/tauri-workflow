@@ -32,7 +32,8 @@
     let snap = $state<ProjectSnapshot>(get(projectStore) ?? fallback);
     let tr = $state(get(t));
     let currentLocale = $state<Locale>(get(locale));
-    let isChatOpen = $state<boolean>(true);
+    import { get as getStore } from "svelte/store";
+    let isChatOpen = $state<boolean>(getStore(chatOpen));
 
     let unsubscribe: () => void;
     $effect(() => {

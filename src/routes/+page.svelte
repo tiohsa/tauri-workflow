@@ -6,7 +6,7 @@
   import { get } from "svelte/store";
   let isProcessing = $state(false);
   let tr = $state(get(t));
-  let isChatOpen = $state(true);
+  let isChatOpen = $state(get(chatOpen));
   $effect(() => {
     const un = uiProcessing.subscribe((v) => (isProcessing = v));
     return () => un?.();
